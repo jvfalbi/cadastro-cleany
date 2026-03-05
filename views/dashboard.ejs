@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Início - Cleany</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      .dashboard-welcome { margin-bottom: 1.5rem; }
+      .dashboard-section { margin-bottom: 2rem; }
+      .dashboard-section:last-child { margin-bottom: 0; }
+      .dashboard-section .card { padding: 2rem 1.5rem; min-height: 140px; }
+      .dashboard-section h2 { font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-soft); padding-bottom: 0.4rem; }
+      .agendamentos-list { list-style: none; padding: 0; margin: 0; }
+      .agendamentos-list li { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border-soft); gap: 0.75rem; }
+      .agendamentos-list li:last-child { border-bottom: none; }
+      .agendamentos-list .ag-data { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; }
+      .agendamentos-list .ag-cliente { font-weight: 500; }
+      .agendamentos-list .ag-desc { font-size: 0.85rem; color: var(--text-muted); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .agendamentos-list .badge { font-size: 0.7rem; }
+      .atalhos-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; padding: 1rem 0; }
+      .dashboard-section .card.card-atalhos { min-height: 200px; padding: 2.5rem 1.5rem; }
+      .atalho-card { display: block; text-decoration: none; color: inherit; background: #fff; border: 1px solid var(--border-soft); border-radius: 14px; padding: 2rem 2.25rem; min-width: 180px; text-align: center; transition: border-color 0.2s, box-shadow 0.2s; }
+      .atalho-card:hover { border-color: var(--primary-green); box-shadow: 0 4px 12px rgba(0, 166, 81, 0.12); }
+      .atalho-card .atalho-icon { width: 56px; height: 56px; margin: 0 auto 1rem; display: block; color: var(--primary-green); }
+      .atalho-card .atalho-icon svg { width: 100%; height: 100%; }
+      .atalho-card .atalho-title { font-weight: 600; font-size: 1.15rem; }
+      .agendamentos-empty { color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0; }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="layout">
+        <%- include('partials/navbar') %>
+        <main class="main-content">
+          <div class="container">
+            <div class="page-header">
+              <div>
+                <div class="page-title">Início</div>
+                
+              </div>
+            </div>
+
+            <div class="dashboard-section">
+              <div class="card">
+                <h2>Próximos agendamentos</h2>
+                <% if (!agendamentos || agendamentos.length === 0) { %>
+                <p class="agendamentos-empty">Nenhum agendamento nos próximos dias.</p>
+                <% } else { %>
+                <ul class="agendamentos-list">
+                <% agendamentos.forEach(function (a) {
+                  var dataStr = a.due_date ? new Date(a.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : '-';
+                  var horaStr = (a.due_time || '').slice(0, 5) || '-';
+                %>
+                <li>
+                  <div>
+                    <span class="ag-data"><%= dataStr %> <%= horaStr %></span>
+                    <span class="ag-cliente"><%= a.customer_name %></span>
+                    <% if (a.description) { %><div class="ag-desc" title="<%= a.description %>"><%= a.description.length > 45 ? a.description.substring(0, 45) + '...' : a.description %></div><% } %>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <% if (a.status === 'Aberta') { %><span class="badge badge-open">Aberta</span><% } else if (a.status === 'Em andamento') { %><span class="badge badge-progress">Em andamento</span><% } else if (a.status === 'Concluída') { %><span class="badge badge-done">Concluída</span><% } else { %><span class="badge"><%= a.status %></span><% } %>
+                    <a href="/ordens/<%= a.id %>" class="btn btn-secondary btn-sm">Ver</a>
+                  </div>
+                </li>
+                <% }); %>
+              </ul>
+              <% } %>
+              </div>
+            </div>
+
+            <div class="dashboard-section">
+              <div class="card card-atalhos">
+                <div class="atalhos-grid">
+                <a href="/clientes" class="atalho-card">
+                  <span class="atalho-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                  <div class="atalho-title">Clientes</div>
+                </a>
+                <a href="/calendario" class="atalho-card">
+                  <span class="atalho-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+                  <div class="atalho-title">Calendário</div>
+                </a>
+                <a href="/ordens" class="atalho-card">
+                  <span class="atalho-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+                  <div class="atalho-title">Gerar O.S.</div>
+                </a>
+                <a href="/servicos" class="atalho-card">
+                  <span class="atalho-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+                  <div class="atalho-title">Serviços</div>
+                </a>
+              </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+
+    </div>
+  </body>
+</html>

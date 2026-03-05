@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Login - Cleany</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: var(--background-soft); }
+      .login-box { width: 100%; max-width: 380px; }
+      .login-logo { text-align: center; margin-bottom: 1.5rem; }
+      .login-logo img { max-height: 120px; width: auto; }
+      .login-title { font-size: 1.35rem; font-weight: 700; color: var(--text-main); margin-bottom: 1.5rem; }
+      .login-card .form-group { margin-bottom: 1rem; }
+      .login-card .form-group:last-of-type { margin-bottom: 1.25rem; }
+      .login-error { background: rgba(224, 36, 36, 0.1); color: var(--danger); padding: 0.6rem 0.75rem; border-radius: 8px; font-size: 0.9rem; margin-bottom: 1rem; }
+    </style>
+  </head>
+  <body>
+    <div class="login-page">
+      <div class="login-box">
+        <div class="login-logo">
+          <img src="/img/logocleany.png" alt="Cleany" />
+        </div>
+        <h1 class="login-title" style="text-align: center;">Entrar</h1>
+
+        <div class="card login-card">
+          <form action="/login" method="post">
+            <% if (error) { %>
+            <div class="login-error"><%= error %></div>
+            <% } %>
+            <div class="form-group">
+              <label for="username">Usuário</label>
+              <input type="text" id="username" name="username" required autocomplete="username" placeholder="Digite seu usuário" />
+            </div>
+            <div class="form-group">
+              <label for="password">Senha</label>
+              <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Digite sua senha" />
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Entrar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

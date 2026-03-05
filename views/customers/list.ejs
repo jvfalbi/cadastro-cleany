@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Clientes - Cleany</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="layout">
+        <%- include('../partials/navbar') %>
+        <main class="main-content">
+          <div class="container">
+            <div class="page-header">
+              <div>
+                <div class="page-title">Clientes cadastrados</div>
+                <div class="page-subtitle">
+                  Gerencie rapidamente os clientes da Cleany.
+                </div>
+              </div>
+              <a href="/clientes/novo" class="btn btn-primary">+ Novo cliente</a>
+            </div>
+
+            <div class="card">
+              <% function esc(v) { return (v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); } %>
+              <table>
+                <thead>
+                  <tr class="filter-row">
+                    <th>
+                      <span class="th-label">Nome</span>
+                      <input type="text" id="filter-nome" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por nome" />
+                    </th>
+                    <th>
+                      <span class="th-label">CPF</span>
+                      <input type="text" id="filter-cpf" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por CPF" />
+                    </th>
+                    <th>
+                      <span class="th-label">E-mail</span>
+                      <input type="text" id="filter-email" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por e-mail" />
+                    </th>
+                    <th>
+                      <span class="th-label">Endereço</span>
+                      <input type="text" id="filter-endereco" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por endereço" />
+                    </th>
+                    <th class="filter-actions">
+                      <span class="th-label">Ações</span>
+                      <button type="button" class="btn btn-secondary btn-sm" id="filter-clear" title="Limpar filtros">Limpar</button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% if (!customers || customers.length === 0) { %>
+                  <tr class="filterable-row">
+                    <td colspan="5" class="table-empty">
+                      Nenhum cliente cadastrado ainda. Clique em "Novo cliente"
+                      para começar.
+                    </td>
+                  </tr>
+                  <% } else { %> <% customers.forEach(function (c) { %>
+                  <tr class="filterable-row" data-nome="<%= esc((c.name || '').toLowerCase()) %>" data-cpf="<%= esc((c.document || '').toLowerCase()) %>" data-email="<%= esc((c.email || '').toLowerCase()) %>" data-endereco="<%= esc((c.address || '').toLowerCase()) %>">
+                    <td><%= c.name %></td>
+                    <td><%= c.document || '-' %></td>
+                    <td><%= c.email || '-' %></td>
+                    <td><%= c.address || '-' %></td>
+                    <td>
+                      <div class="btn-group">
+                        <a
+                          href="/clientes/<%= c.id %>/editar"
+                          class="btn btn-secondary btn-sm"
+                        >
+                          Editar
+                        </a>
+                        <form
+                          class="js-confirm-submit"
+                          action="/clientes/<%= c.id %>/excluir"
+                          method="post"
+                          style="display: inline"
+                          data-confirm-title="Excluir cliente?"
+                          data-confirm-msg="Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita."
+                        >
+                          <button type="submit" class="btn btn-danger btn-sm">
+                            Excluir
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                  <% }); %> <% } %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </main>
+      </div>
+
+    </div>
+    <script>
+      (function () {
+        var rows = document.querySelectorAll('.filterable-row');
+        var filterNome = document.getElementById('filter-nome');
+        var filterCpf = document.getElementById('filter-cpf');
+        var filterEmail = document.getElementById('filter-email');
+        var filterEndereco = document.getElementById('filter-endereco');
+        var filterClear = document.getElementById('filter-clear');
+
+        function applyFilters() {
+          var nome = (filterNome && filterNome.value || '').trim().toLowerCase();
+          var cpf = (filterCpf && filterCpf.value || '').trim().toLowerCase();
+          var email = (filterEmail && filterEmail.value || '').trim().toLowerCase();
+          var endereco = (filterEndereco && filterEndereco.value || '').trim().toLowerCase();
+
+          rows.forEach(function (tr) {
+            if (tr.querySelector('.table-empty')) {
+              tr.style.display = '';
+              return;
+            }
+            var matchNome = !nome || (tr.dataset.nome && tr.dataset.nome.indexOf(nome) !== -1);
+            var matchCpf = !cpf || (tr.dataset.cpf && tr.dataset.cpf.indexOf(cpf) !== -1);
+            var matchEmail = !email || (tr.dataset.email && tr.dataset.email.indexOf(email) !== -1);
+            var matchEndereco = !endereco || (tr.dataset.endereco && tr.dataset.endereco.indexOf(endereco) !== -1);
+            tr.style.display = (matchNome && matchCpf && matchEmail && matchEndereco) ? '' : 'none';
+          });
+        }
+
+        function clearFilters() {
+          if (filterNome) filterNome.value = '';
+          if (filterCpf) filterCpf.value = '';
+          if (filterEmail) filterEmail.value = '';
+          if (filterEndereco) filterEndereco.value = '';
+          applyFilters();
+        }
+
+        [filterNome, filterCpf, filterEmail, filterEndereco].forEach(function (el) {
+          if (el) el.addEventListener('input', applyFilters);
+        });
+        if (filterClear) filterClear.addEventListener('click', clearFilters);
+      })();
+    </script>
+  </body>
+</html>
+

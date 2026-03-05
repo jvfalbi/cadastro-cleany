@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gerar O.S. - Cleany</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="layout">
+        <%- include('../partials/navbar') %>
+        <main class="main-content">
+          <div class="container">
+            <div class="page-header">
+              <div>
+                <div class="page-title">Gerar O.S.</div>
+                <div class="page-subtitle">
+                  Histórico e analítico geral das ordens de serviço.
+                </div>
+              </div>
+              <a href="/ordens/nova" class="btn btn-primary">Gerar nova O.S.</a>
+            </div>
+
+            <% if (typeof stats !== 'undefined' && stats) { %>
+            <div class="stats-row">
+              <div class="stat-card stat-total">
+                <div class="stat-value"><%= stats.total %></div>
+                <div class="stat-label">Total</div>
+              </div>
+              <div class="stat-card stat-open">
+                <div class="stat-value"><%= stats.Aberta || 0 %></div>
+                <div class="stat-label">Abertas</div>
+              </div>
+              <div class="stat-card stat-progress">
+                <div class="stat-value"><%= stats['Em andamento'] || 0 %></div>
+                <div class="stat-label">Em andamento</div>
+              </div>
+              <div class="stat-card stat-done">
+                <div class="stat-value"><%= stats.Concluída || 0 %></div>
+                <div class="stat-label">Concluídas</div>
+              </div>
+              <div class="stat-card stat-cancelled">
+                <div class="stat-value"><%= stats.Cancelada || 0 %></div>
+                <div class="stat-label">Canceladas</div>
+              </div>
+            </div>
+            <% } %>
+
+            <div class="card">
+              <% function esc(v) { return (v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); } %>
+              <table>
+                <thead>
+                  <tr class="filter-row">
+                    <th>
+                      <span class="th-label">#</span>
+                      <input type="text" id="filter-id" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por número" />
+                    </th>
+                    <th>
+                      <span class="th-label">Cliente</span>
+                      <input type="text" id="filter-cliente" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por cliente" />
+                    </th>
+                    <th>
+                      <span class="th-label">Serviço</span>
+                      <input type="text" id="filter-servico" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por serviço" />
+                    </th>
+                    <th>
+                      <span class="th-label">Status</span>
+                      <input type="text" id="filter-status" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por status" />
+                    </th>
+                    <th>
+                      <span class="th-label">Data de abertura</span>
+                      <input type="text" id="filter-data" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por data" />
+                    </th>
+                    <th class="filter-actions">
+                      <span class="th-label">Ações</span>
+                      <button type="button" class="btn btn-secondary btn-sm" id="filter-clear" title="Limpar filtros">Limpar</button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% if (!orders || orders.length === 0) { %>
+                  <tr class="filterable-row">
+                    <td colspan="6" class="table-empty">
+                      Nenhuma ordem de serviço cadastrada ainda.
+                    </td>
+                  </tr>
+                  <% } else { %> <% orders.forEach(function (o) {
+                    var dataAbertura = new Date(o.created_at).toLocaleDateString('pt-BR');
+                  %>
+                  <tr class="filterable-row" data-id="<%= String(o.id) %>" data-cliente="<%= esc((o.customer_name || '').toLowerCase()) %>" data-servico="<%= esc((o.description || '').toLowerCase()) %>" data-status="<%= esc((o.status || '').toLowerCase()) %>" data-data="<%= esc(dataAbertura.toLowerCase()) %>">
+                    <td>#<%= o.id %></td>
+                    <td><%= o.customer_name %></td>
+                    <td>
+                      <%=
+                        o.description.length > 40
+                          ? o.description.substring(0, 40) + '...'
+                          : o.description
+                      %>
+                    </td>
+                    <td>
+                      <% if (o.status === 'Aberta') { %>
+                      <span class="badge badge-open">Aberta</span>
+                      <% } else if (o.status === 'Em andamento') { %>
+                      <span class="badge badge-progress">Em andamento</span>
+                      <% } else if (o.status === 'Concluída') { %>
+                      <span class="badge badge-done">Concluída</span>
+                      <% } else if (o.status === 'Cancelada') { %>
+                      <span class="badge badge-cancelled">Cancelada</span>
+                      <% } else { %>
+                      <span class="badge"><%= o.status %></span>
+                      <% } %>
+                    </td>
+                    <td><%= dataAbertura %></td>
+                    <td>
+                      <a
+                        href="/ordens/<%= o.id %>"
+                        class="btn btn-secondary btn-sm"
+                      >
+                        Detalhes
+                      </a>
+                    </td>
+                  </tr>
+                  <% }); %> <% } %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </main>
+      </div>
+
+    </div>
+    <script>
+      (function () {
+        var rows = document.querySelectorAll('.filterable-row');
+        var filterId = document.getElementById('filter-id');
+        var filterCliente = document.getElementById('filter-cliente');
+        var filterServico = document.getElementById('filter-servico');
+        var filterStatus = document.getElementById('filter-status');
+        var filterData = document.getElementById('filter-data');
+        var filterClear = document.getElementById('filter-clear');
+
+        function applyFilters() {
+          var id = (filterId && filterId.value || '').trim().toLowerCase();
+          var cliente = (filterCliente && filterCliente.value || '').trim().toLowerCase();
+          var servico = (filterServico && filterServico.value || '').trim().toLowerCase();
+          var status = (filterStatus && filterStatus.value || '').trim().toLowerCase();
+          var data = (filterData && filterData.value || '').trim().toLowerCase();
+
+          rows.forEach(function (tr) {
+            if (tr.querySelector('.table-empty')) {
+              tr.style.display = '';
+              return;
+            }
+            var matchId = !id || (tr.dataset.id && tr.dataset.id.indexOf(id) !== -1);
+            var matchCliente = !cliente || (tr.dataset.cliente && tr.dataset.cliente.indexOf(cliente) !== -1);
+            var matchServico = !servico || (tr.dataset.servico && tr.dataset.servico.indexOf(servico) !== -1);
+            var matchStatus = !status || (tr.dataset.status && tr.dataset.status.indexOf(status) !== -1);
+            var matchData = !data || (tr.dataset.data && tr.dataset.data.indexOf(data) !== -1);
+            tr.style.display = (matchId && matchCliente && matchServico && matchStatus && matchData) ? '' : 'none';
+          });
+        }
+
+        function clearFilters() {
+          if (filterId) filterId.value = '';
+          if (filterCliente) filterCliente.value = '';
+          if (filterServico) filterServico.value = '';
+          if (filterStatus) filterStatus.value = '';
+          if (filterData) filterData.value = '';
+          applyFilters();
+        }
+
+        [filterId, filterCliente, filterServico, filterStatus, filterData].forEach(function (el) {
+          if (el) el.addEventListener('input', applyFilters);
+        });
+        if (filterClear) filterClear.addEventListener('click', clearFilters);
+      })();
+    </script>
+  </body>
+</html>
+

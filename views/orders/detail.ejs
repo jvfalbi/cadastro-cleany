@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>O.S. #<%= order.id %> - Cleany</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      .print-logo { display: none; }
+      @media print {
+        .print-logo { display: block !important; text-align: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #333; }
+        .print-logo img { max-height: 56px; width: auto; }
+        .sidebar, .footer, .no-print { display: none !important; }
+        .layout { display: block; }
+        .main-content { padding: 0; }
+        .container { max-width: 100%; }
+        .card { box-shadow: none; border: 1px solid #ccc; }
+        body { background: #fff; }
+        .page-header { margin-bottom: 1rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="layout">
+        <%- include('../partials/navbar') %>
+        <main class="main-content">
+          <div class="container">
+            <div class="print-logo">
+              <img src="/img/logocleany.png" alt="Cleany - Trituradores de Resíduos" />
+            </div>
+            <div class="page-header">
+              <div>
+                <div class="page-title">
+                  Ordem de serviço #<%= order.id %>
+                </div>
+                <div class="page-subtitle">
+                  <%= order.customer_name %> &mdash;
+                  <%= new Date(order.created_at).toLocaleString('pt-BR') %>
+                </div>
+              </div>
+              <div class="btn-group no-print">
+                <button type="button" class="btn btn-primary" onclick="window.print();">Imprimir O.S.</button>
+                <a href="/ordens" class="btn btn-secondary">Voltar para lista</a>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Resumo da O.S.</div>
+                <div>
+                  <% if (order.status === 'Aberta') { %>
+                  <span class="badge badge-open">Aberta</span>
+                  <% } else if (order.status === 'Em andamento') { %>
+                  <span class="badge badge-progress">Em andamento</span>
+                  <% } else if (order.status === 'Concluída') { %>
+                  <span class="badge badge-done">Concluída</span>
+                  <% } else if (order.status === 'Cancelada') { %>
+                  <span class="badge badge-cancelled">Cancelada</span>
+                  <% } else { %>
+                  <span class="badge"><%= order.status %></span>
+                  <% } %>
+                </div>
+              </div>
+
+              <div class="detail-grid">
+                <div>
+                  <div class="detail-label">Cliente</div>
+                  <div class="detail-value"><%= order.customer_name %></div>
+                </div>
+                <div>
+                  <div class="detail-label">Telefone</div>
+                  <div class="detail-value"><%= order.phone || '-' %></div>
+                </div>
+                <div>
+                  <div class="detail-label">E-mail</div>
+                  <div class="detail-value"><%= order.email || '-' %></div>
+                </div>
+                <div>
+                  <div class="detail-label">Endereço</div>
+                  <div class="detail-value"><%= order.address || '-' %></div>
+                </div>
+                <div>
+                  <div class="detail-label">Valor estimado</div>
+                  <div class="detail-value">
+                    <%=
+                      order.price_estimate != null
+                        ? 'R$ ' +
+                          Number(order.price_estimate)
+                            .toFixed(2)
+                            .replace('.', ',')
+                        : '-'
+                    %>
+                  </div>
+                </div>
+                <div>
+                  <div class="detail-label">Valor final</div>
+                  <div class="detail-value">
+                    <%=
+                      order.price_final != null
+                        ? 'R$ ' +
+                          Number(order.price_final).toFixed(2).replace('.', ',')
+                        : '-'
+                    %>
+                  </div>
+                </div>
+                <div>
+                  <div class="detail-label">Data prevista</div>
+                  <div class="detail-value">
+                    <%= order.due_date ? new Date(order.due_date).toLocaleDateString('pt-BR') : '-' %>
+                  </div>
+                </div>
+                <div>
+                  <div class="detail-label">Horário previsto</div>
+                  <div class="detail-value"><%= order.due_time || '-' %></div>
+                </div>
+                <div>
+                  <div class="detail-label">Criada em</div>
+                  <div class="detail-value">
+                    <%= new Date(order.created_at).toLocaleString('pt-BR') %>
+                  </div>
+                </div>
+                <div>
+                  <div class="detail-label">Última atualização</div>
+                  <div class="detail-value">
+                    <%= new Date(order.updated_at).toLocaleString('pt-BR') %>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top: 1rem">
+                <div class="detail-label">Descrição do serviço</div>
+                <div class="detail-value"><%= order.description %></div>
+              </div>
+            </div>
+
+            <div class="card no-print">
+              <div class="card-header">
+                <div class="card-title">Atualizar status</div>
+              </div>
+              <form class="js-confirm-submit" action="/ordens/<%= order.id %>/status" method="post" data-confirm-if-status="status" data-confirm-if-value="Cancelada" data-confirm-title="Cancelar O.S.?" data-confirm-msg="Tem certeza que deseja cancelar esta ordem de serviço?">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                      <option
+                        value="Aberta"
+                        <%= order.status === 'Aberta' ? 'selected' : '' %>
+                      >
+                        Aberta
+                      </option>
+                      <option
+                        value="Em andamento"
+                        <%=
+                          order.status === 'Em andamento' ? 'selected' : ''
+                        %>
+                      >
+                        Em andamento
+                      </option>
+                      <option
+                        value="Concluída"
+                        <%= order.status === 'Concluída' ? 'selected' : '' %>
+                      >
+                        Concluída
+                      </option>
+                      <option
+                        value="Cancelada"
+                        <%= order.status === 'Cancelada' ? 'selected' : '' %>
+                      >
+                        Cancelada
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="price_final">Valor final (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      id="price_final"
+                      name="price_final"
+                      value="<%= order.price_final != null ? order.price_final : '' %>"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">
+                      Salvar atualização
+                    </button>
+                  </div>
+                  <div class="hint">
+                    Use este espaço para marcar quando o serviço foi concluído e
+                    registrar o valor final.
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </main>
+      </div>
+
+    </div>
+  </body>
+</html>
+

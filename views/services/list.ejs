@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Serviços - Cleany</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="layout">
+        <%- include('../partials/navbar') %>
+        <main class="main-content">
+          <div class="container">
+            <div class="page-header">
+              <div>
+                <div class="page-title">Serviços</div>
+                <div class="page-subtitle">
+                  Tabela de referência para orçamentos e ordens de serviço.
+                </div>
+              </div>
+              <a href="/servicos/novo" class="btn btn-primary">+ Novo serviço</a>
+            </div>
+
+            <div class="card">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Serviço</th>
+                    <th>Descrição</th>
+                    <th style="width: 140px">Valor de referência</th>
+                    <th style="width: 140px">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% if (!services || services.length === 0) { %>
+                  <tr>
+                    <td colspan="4" class="table-empty">
+                      Nenhum serviço configurado. Clique em "Novo serviço" para começar.
+                    </td>
+                  </tr>
+                  <% } else { %>
+                  <% services.forEach(function (s) { %>
+                  <tr>
+                    <td><%= s.name %></td>
+                    <td><%= s.description || '-' %></td>
+                    <td>
+                      <% if (s.price != null && s.price > 0) { %>
+                      R$ <%= Number(s.price).toFixed(2).replace('.', ',') %>
+                      <% } else { %>
+                      Sob orçamento
+                      <% } %>
+                    </td>
+                    <td>
+                      <div class="btn-group">
+                        <a href="/servicos/<%= s.id %>/editar" class="btn btn-secondary btn-sm">Editar</a>
+                        <form class="js-confirm-submit" action="/servicos/<%= s.id %>/excluir" method="post" style="display: inline" data-confirm-title="Excluir serviço?" data-confirm-msg="Tem certeza que deseja excluir este serviço? Esta ação não pode ser desfeita.">
+                          <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                  <% }); %>
+                  <% } %>
+                </tbody>
+              </table>
+              <p class="hint" style="margin-top: 0.8rem">
+                Os valores acima são apenas referência. Ajuste o valor final da O.S. conforme a necessidade de cada cliente.
+              </p>
+            </div>
+          </div>
+        </main>
+      </div>
+
+    </div>
+  </body>
+</html>

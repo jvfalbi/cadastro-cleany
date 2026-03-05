@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Nova ordem de serviço - Cleany</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      .print-logo { display: none; }
+      .print-only-time { display: none; }
+      @media print {
+        .print-logo { display: block !important; text-align: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #333; }
+        .print-logo img { max-height: 56px; width: auto; }
+        .time-row { display: none !important; }
+        .print-only-time { display: block !important; margin-bottom: 0.75rem; }
+        .sidebar, .footer, .no-print { display: none !important; }
+        .layout { display: block; }
+        .main-content { padding: 0; }
+        .container { max-width: 100%; }
+        .card { box-shadow: none; border: 1px solid #333; }
+        body { background: #fff; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="layout">
+        <%- include('../partials/navbar') %>
+        <main class="main-content">
+          <div class="container">
+            <div class="print-logo">
+              <img src="/img/logocleany.png" alt="Cleany - Trituradores de Resíduos" />
+            </div>
+            <div class="page-header">
+              <div>
+                <div class="page-title">Nova ordem de serviço</div>
+                <div class="page-subtitle">
+                  Vincule a O.S. a um cliente e descreva o serviço.
+                </div>
+              </div>
+              <div class="btn-group no-print">
+                <a href="/ordens" class="btn btn-secondary">Voltar ao histórico</a>
+                <button type="button" class="btn btn-primary" onclick="imprimirOS();">Imprimir O.S.</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <form id="order-form" action="/ordens" method="post">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="customer_id">Cliente*</label>
+                    <select id="customer_id" name="customer_id" required>
+                      <option value="">Selecione um cliente</option>
+                      <% customers.forEach(function (c) { %>
+                      <option value="<%= c.id %>"><%= c.name %></option>
+                      <% }); %>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="status">Status inicial</label>
+                    <select id="status" name="status">
+                      <option value="Aberta" selected>Aberta</option>
+                      <option value="Em andamento">Em andamento</option>
+                      <option value="Concluída">Concluída</option>
+                      <option value="Cancelada">Cancelada</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="price_estimate">Valor estimado (R$)*</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      id="price_estimate"
+                      name="price_estimate"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="due_date">Data prevista*</label>
+                    <input type="date" id="due_date" name="due_date" value="<%= prefillDate || '' %>" required />
+                  </div>
+
+                  <div class="form-group form-group--time" style="grid-column: 1 / -1;">
+                    <label>Horário previsto*</label>
+                    <input type="hidden" id="due_time" name="due_time" value="" required />
+                    <div class="print-only-time"><strong>Horário previsto:</strong> <span id="print_time_display">—</span></div>
+                    <div class="time-row">
+                      <div class="time-slots-container">
+                        <div id="due_time_slots" class="time-slots"></div>
+                      </div>
+                      <div class="time-manual-wrap">
+                        <span class="time-manual-label">Encaixe</span>
+                        <input type="text" id="due_time_manual" class="time-manual-input" placeholder="Ex: 08:30" maxlength="5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="description">Descrição do serviço*</label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      required
+                    ></textarea>
+                  </div>
+                </div>
+
+                <div class="form-actions no-print">
+                  <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">
+                      Salvar O.S.
+                    </button>
+                    <a href="/ordens" class="btn btn-secondary"
+                      >Voltar para lista</a
+                    >
+                  </div>
+                  <div class="hint">Campos marcados com * são obrigatórios.</div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </main>
+      </div>
+
+    </div>
+    <script>
+      function imprimirOS() {
+        var form = document.getElementById('order-form');
+        if (!form) return;
+        if (form.checkValidity()) {
+          window.print();
+        } else {
+          form.reportValidity();
+        }
+      }
+      (function () {
+        var slots = [];
+        for (var h = 8; h <= 17; h++) {
+          var hh = h < 10 ? '0' + h : '' + h;
+          slots.push(hh + ':00');
+        }
+        var hiddenInput = document.getElementById('due_time');
+        var container = document.getElementById('due_time_slots');
+        var manualInput = document.getElementById('due_time_manual');
+        var dateInput = document.getElementById('due_date');
+        var initialOcupados = <%- JSON.stringify(typeof prefillOcupados !== 'undefined' ? prefillOcupados : []) %>;
+
+        var printDisplay = document.getElementById('print_time_display');
+        function atualizarPrintTime(v) {
+          if (printDisplay) printDisplay.textContent = v || '—';
+        }
+        if (manualInput) {
+          manualInput.addEventListener('input', function () {
+            var raw = this.value.replace(/\D/g, '').slice(0, 4);
+            var masked = raw.length <= 2 ? raw : raw.slice(0, 2) + ':' + raw.slice(2);
+            this.value = masked;
+            hiddenInput.value = masked;
+            atualizarPrintTime(masked);
+            container.querySelectorAll('.time-slot-btn').forEach(function (b) { b.classList.remove('selected'); });
+          });
+        }
+
+        function horaOcupada(slot, ocupados) {
+          var h = slot.slice(0, 2);
+          return ocupados.indexOf(h + ':00') !== -1 || ocupados.indexOf(h + ':30') !== -1;
+        }
+        function preencherHorarios(ocupados) {
+          container.innerHTML = '';
+          hiddenInput.value = '';
+          atualizarPrintTime('');
+          if (manualInput) manualInput.value = '';
+          for (var i = 0; i < slots.length; i++) {
+            if (horaOcupada(slots[i], ocupados)) continue;
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'time-slot-btn';
+            btn.textContent = slots[i];
+            btn.dataset.time = slots[i];
+            btn.addEventListener('click', function () {
+              var t = this.dataset.time;
+              container.querySelectorAll('.time-slot-btn').forEach(function (b) { b.classList.remove('selected'); });
+              this.classList.add('selected');
+              hiddenInput.value = t;
+              atualizarPrintTime(t);
+              if (manualInput) manualInput.value = '';
+            });
+            container.appendChild(btn);
+          }
+        }
+
+        preencherHorarios(initialOcupados);
+
+        dateInput.addEventListener('change', function () {
+          var data = this.value;
+          if (!data) {
+            preencherHorarios([]);
+            return;
+          }
+          fetch('/api/ordens/ocupados?data=' + encodeURIComponent(data))
+            .then(function (r) { return r.json(); })
+            .then(function (d) { preencherHorarios(d.ocupados || []); })
+            .catch(function () { preencherHorarios([]); });
+        });
+        atualizarPrintTime(hiddenInput.value);
+      })();
+    </script>
+  </body>
+</html>
+

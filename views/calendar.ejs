@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Calendário - Cleany</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="layout">
+        <%- include('partials/navbar') %>
+        <main class="main-content">
+          <div class="container container--calendar">
+            <div class="page-header page-header--calendar">
+              <div>
+                <div class="page-title">Calendário</div>
+                <div class="page-subtitle">Ordens de serviço por data e horário</div>
+              </div>
+              <div class="calendar-nav">
+                <a href="<%= prevLink %>" class="btn btn-secondary btn-sm" aria-label="Mês anterior">←</a>
+                <span class="calendar-title"><%= monthName %> <%= ano %></span>
+                <a href="<%= nextLink %>" class="btn btn-secondary btn-sm" aria-label="Próximo mês">→</a>
+              </div>
+              <a href="/ordens/nova" class="btn btn-primary">+ Nova O.S.</a>
+            </div>
+
+            <div class="card calendar-card">
+              <div class="calendar-grid">
+                <div class="calendar-week calendar-week--head">
+                  <% weekDays.forEach(function (wd) { %>
+                  <div class="calendar-day-head"><%= wd %></div>
+                  <% }); %>
+                </div>
+                <% weeks.forEach(function (week) { %>
+                <div class="calendar-week">
+                  <% week.forEach(function (day) { %>
+                  <div class="calendar-day <%= !day.isCurrentMonth ? 'calendar-day--other' : '' %> <%= day.isToday ? 'calendar-day--today' : '' %>">
+                    <a href="/ordens/nova?data=<%= day.dateKey %>" class="calendar-day-add" title="Adicionar O.S. neste dia" aria-label="Adicionar O.S.">+</a>
+                    <div class="calendar-day-num"><%= day.dayNum %></div>
+                    <div class="calendar-events">
+                      <% (day.orders || []).forEach(function (o) { %>
+                      <a href="/ordens/<%= o.id %>" class="calendar-event" title="<%= o.customer_name %> - <%= o.description %>">
+                        <span class="calendar-event-time"><%= o.due_time || '—' %></span>
+                        <span class="calendar-event-title"><%= o.customer_name %></span>
+                      </a>
+                      <% }); %>
+                    </div>
+                  </div>
+                  <% }); %>
+                </div>
+                <% }); %>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+
+    </div>
+    <script>
+      document.querySelectorAll('.calendar-day').forEach(function (cell) {
+        cell.addEventListener('click', function (e) {
+          if (e.target.closest('.calendar-day-add')) return;
+          document.querySelectorAll('.calendar-day').forEach(function (d) { d.classList.remove('calendar-day--add-visible'); });
+          this.classList.add('calendar-day--add-visible');
+        });
+      });
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('.calendar-day')) {
+          document.querySelectorAll('.calendar-day').forEach(function (d) { d.classList.remove('calendar-day--add-visible'); });
+        }
+      });
+    </script>
+  </body>
+</html>

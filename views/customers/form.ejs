@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title><%= customer ? 'Editar cliente' : 'Novo cliente' %> - Cleany</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="layout">
+        <%- include('../partials/navbar') %>
+        <main class="main-content">
+          <div class="container">
+            <div class="page-header">
+              <div>
+                <div class="page-title">
+                  <%= customer ? 'Editar cliente' : 'Novo cliente' %>
+                </div>
+                <div class="page-subtitle">
+                  Dados básicos para contato e emissão de O.S.
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <form
+                action="<%= customer ? '/clientes/' + customer.id : '/clientes' %>"
+                method="post"
+              >
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="name">Nome*</label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      required
+                      value="<%= customer ? customer.name : '' %>"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="phone">Telefone / WhatsApp</label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value="<%= customer ? customer.phone : '' %>"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value="<%= customer ? customer.email : '' %>"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="document">CPF/CNPJ</label>
+                    <input
+                      type="text"
+                      id="document"
+                      name="document"
+                      value="<%= customer ? customer.document : '' %>"
+                    />
+                  </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="address">Endereço completo</label>
+                    <input
+                      type="text"
+                      id="address"
+                      name="address"
+                      value="<%= customer ? customer.address : '' %>"
+                    />
+                  </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="notes">Observações</label>
+                    <textarea id="notes" name="notes">
+<%= customer && customer.notes ? customer.notes : '' %></textarea
+                    >
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">
+                      <%= customer ? 'Salvar alterações' : 'Salvar cliente' %>
+                    </button>
+                    <a href="/clientes" class="btn btn-secondary"
+                      >Voltar para lista</a
+                    >
+                  </div>
+                  <div class="hint">Campos marcados com * são obrigatórios.</div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </main>
+      </div>
+
+    </div>
+  </body>
+</html>
+

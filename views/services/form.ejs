@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title><%= service ? 'Editar serviço' : 'Novo serviço' %> - Cleany</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="layout">
+        <%- include('../partials/navbar') %>
+        <main class="main-content">
+          <div class="container">
+            <div class="page-header">
+              <div>
+                <div class="page-title"><%= service ? 'Editar serviço' : 'Novo serviço' %></div>
+                <div class="page-subtitle">
+                  Nome, descrição e valor de referência.
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <form action="<%= service ? '/servicos/' + service.id : '/servicos' %>" method="post">
+                <div class="form-grid">
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="name">Nome do serviço*</label>
+                    <input type="text" id="name" name="name" required value="<%= service ? service.name : '' %>" />
+                  </div>
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="description">Descrição</label>
+                    <textarea id="description" name="description"><%= service && service.description ? service.description : '' %></textarea>
+                  </div>
+                  <div class="form-group">
+                    <label for="price">Valor de referência (R$)</label>
+                    <input type="number" id="price" name="price" step="0.01" min="0" value="<%= service != null && service.price != null ? service.price : '' %>" />
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <div class="btn-group">
+                    <button type="submit" class="btn btn-primary"><%= service ? 'Salvar alterações' : 'Salvar serviço' %></button>
+                    <a href="/servicos" class="btn btn-secondary">Voltar</a>
+                  </div>
+                  <div class="hint">Deixe 0 para "Sob orçamento".</div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </main>
+      </div>
+
+    </div>
+  </body>
+</html>

@@ -1,0 +1,141 @@
+<aside class="sidebar">
+  <a href="/" class="sidebar-logo" title="Página inicial">
+    <img src="/img/logocleany.png" alt="Cleany - Trituradores de Resíduos" />
+  </a>
+  <nav class="sidebar-nav">
+    <a href="/" class="sidebar-link">
+      <span class="sidebar-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+      Página inicial
+    </a>
+    <a href="/clientes" class="sidebar-link">
+      <span class="sidebar-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+      Clientes
+    </a>
+    <a href="/calendario" class="sidebar-link">
+      <span class="sidebar-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+      Calendário
+    </a>
+    <a href="/ordens" class="sidebar-link">
+      <span class="sidebar-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+      Gerar O.S.
+    </a>
+    <a href="/servicos" class="sidebar-link">
+      <span class="sidebar-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+      Serviços
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="/logout" class="sidebar-link" id="sidebar-logout" data-logout-url="/logout">
+      <span class="sidebar-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+      Sair
+    </a>
+  </div>
+</aside>
+
+<div id="confirm-action-modal" class="logout-modal confirm-action-modal" aria-hidden="true">
+  <div class="logout-modal-backdrop confirm-action-backdrop"></div>
+  <div class="logout-modal-dialog">
+    <div class="logout-modal-icon confirm-action-icon" style="color: var(--primary-green);">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </div>
+    <h3 class="logout-modal-title confirm-action-title">Confirmar</h3>
+    <p class="logout-modal-text confirm-action-text">Deseja realmente continuar?</p>
+    <div class="logout-modal-actions">
+      <button type="button" class="btn btn-secondary confirm-action-cancel">Cancelar</button>
+      <button type="button" class="btn btn-primary confirm-action-confirm">Sim, confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="logout-modal" class="logout-modal" aria-hidden="true">
+  <div class="logout-modal-backdrop"></div>
+  <div class="logout-modal-dialog">
+    <div class="logout-modal-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </div>
+    <h3 class="logout-modal-title">Sair?</h3>
+    <p class="logout-modal-text">Deseja realmente encerrar sua sessão?</p>
+    <div class="logout-modal-actions">
+      <button type="button" class="btn btn-secondary" id="logout-modal-cancel">Cancelar</button>
+      <a href="/logout" class="btn btn-primary" id="logout-modal-confirm">Sim, sair</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var modal = document.getElementById('logout-modal');
+  var trigger = document.getElementById('sidebar-logout');
+  var cancelBtn = document.getElementById('logout-modal-cancel');
+  var confirmLink = document.getElementById('logout-modal-confirm');
+  if (!modal || !trigger) return;
+  trigger.addEventListener('click', function(e) {
+    e.preventDefault();
+    modal.classList.add('logout-modal--open');
+    modal.setAttribute('aria-hidden', 'false');
+  });
+  function closeModal() {
+    modal.classList.remove('logout-modal--open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+  if (modal.querySelector('.logout-modal-backdrop')) {
+    modal.querySelector('.logout-modal-backdrop').addEventListener('click', closeModal);
+  }
+  if (confirmLink) confirmLink.setAttribute('href', trigger.getAttribute('data-logout-url') || '/logout');
+})();
+
+(function() {
+  var modal = document.getElementById('confirm-action-modal');
+  if (!modal) return;
+  var titleEl = modal.querySelector('.confirm-action-title');
+  var textEl = modal.querySelector('.confirm-action-text');
+  var cancelBtn = modal.querySelector('.confirm-action-cancel');
+  var confirmBtn = modal.querySelector('.confirm-action-confirm');
+  var backdrop = modal.querySelector('.confirm-action-backdrop');
+  var formToSubmit = null;
+
+  function openConfirm(title, text, onSubmit) {
+    if (titleEl) titleEl.textContent = title || 'Confirmar';
+    if (textEl) textEl.textContent = text || 'Deseja continuar?';
+    formToSubmit = onSubmit;
+    modal.classList.add('logout-modal--open');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeConfirm() {
+    modal.classList.remove('logout-modal--open');
+    modal.setAttribute('aria-hidden', 'true');
+    formToSubmit = null;
+  }
+
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', function() {
+      if (formToSubmit && typeof formToSubmit === 'object' && formToSubmit.submit) {
+        formToSubmit.submit();
+      } else if (typeof formToSubmit === 'function') {
+        formToSubmit();
+      }
+      closeConfirm();
+    });
+  }
+  if (cancelBtn) cancelBtn.addEventListener('click', closeConfirm);
+  if (backdrop) backdrop.addEventListener('click', closeConfirm);
+
+  document.addEventListener('submit', function(e) {
+    var form = e.target;
+    if (!form || !form.classList.contains('js-confirm-submit')) return;
+    var ifStatus = form.getAttribute('data-confirm-if-status');
+    var ifValue = form.getAttribute('data-confirm-if-value');
+    if (ifStatus && ifValue) {
+      var select = form.querySelector('[name="' + ifStatus + '"]');
+      if (!select || select.value !== ifValue) return;
+    }
+    e.preventDefault();
+    var title = form.getAttribute('data-confirm-title') || 'Confirmar';
+    var msg = form.getAttribute('data-confirm-msg') || 'Deseja realmente continuar?';
+    openConfirm(title, msg, form);
+  }, true);
+})();
+</script>
+
