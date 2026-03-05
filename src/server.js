@@ -39,6 +39,18 @@ app.use(session({
 }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+app.use((req, res, next) => {
+  res.locals.whatsappUrl = function (phone) {
+    if (!phone) return '';
+    const d = String(phone).replace(/\D/g, '');
+    if (d.length < 10) return '';
+    if (d.length === 10 || d.length === 11) return 'https://wa.me/55' + d;
+    if (d.length >= 12 && d.substring(0, 2) === '55') return 'https://wa.me/' + d;
+    return 'https://wa.me/55' + d;
+  };
+  next();
+});
+
 app.get('/login', (req, res) => {
   if (req.session && req.session.user) return res.redirect('/');
   res.render('login', { error: null });
@@ -62,7 +74,7 @@ app.use(requireAuth);
 app.get('/', (req, res) => {
   marcarAtrasadasComoConcluidas(() => {
     const sql = `
-      SELECT so.id, so.due_date, so.due_time, so.status, so.description, c.name AS customer_name
+      SELECT so.id, so.due_date, so.due_time, so.status, so.description, c.name AS customer_name, c.phone AS customer_phone
       FROM service_orders so
       JOIN customers c ON c.id = so.customer_id
       WHERE so.status IN ('Aberta', 'Em andamento') AND so.due_date >= date('now', 'localtime')
@@ -140,7 +152,7 @@ app.post('/clientes/:id/excluir', (req, res) => {
 app.get('/ordens', (req, res) => {
   marcarAtrasadasComoConcluidas(() => {
     const sql = `
-      SELECT so.*, c.name AS customer_name
+      SELECT so.*, c.name AS customer_name, c.phone AS customer_phone
       FROM service_orders so
       JOIN customers c ON c.id = so.customer_id
       ORDER BY so.created_at DESC
@@ -283,7 +295,7 @@ app.get('/calendario', (req, res) => {
   fim.setDate(fim.getDate() + (6 - ultimoDia.getDay()));
 
   const sql = `
-    SELECT so.*, c.name AS customer_name
+    SELECT so.*, c.name AS customer_name, c.phone AS customer_phone
     FROM service_orders so
     JOIN customers c ON c.id = so.customer_id
     ORDER BY so.due_date, so.created_at
@@ -416,14 +428,14 @@ app.get('/financeiro', (req, res) => {
     WHERE status IN ('Aberta', 'Em andamento') AND due_date >= ? AND due_date <= ?
   `;
   const listRecebidasSql = `
-    SELECT so.id, so.updated_at, so.price_final, so.price_estimate, so.description, c.name AS customer_name
+    SELECT so.id, so.updated_at, so.price_final, so.price_estimate, so.description, c.name AS customer_name, c.phone AS customer_phone
     FROM service_orders so
     JOIN customers c ON c.id = so.customer_id
     WHERE so.status = 'Concluída' AND date(so.updated_at) >= ? AND date(so.updated_at) <= ?
     ORDER BY so.updated_at DESC
   `;
   const listAReceberSql = `
-    SELECT so.id, so.due_date, so.due_time, so.price_estimate, so.description, c.name AS customer_name, so.status
+    SELECT so.id, so.due_date, so.due_time, so.price_estimate, so.description, c.name AS customer_name, c.phone AS customer_phone, so.status
     FROM service_orders so
     JOIN customers c ON c.id = so.customer_id
     WHERE so.status IN ('Aberta', 'Em andamento') AND so.due_date >= date('now', 'localtime')

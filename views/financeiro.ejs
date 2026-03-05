@@ -106,7 +106,12 @@
                       <td><%= r.customer_name %></td>
                       <td><%= r.description && r.description.length > 40 ? r.description.substring(0, 40) + '...' : (r.description || '-') %></td>
                       <td class="valor">R$ <%= (val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
-                      <td><a href="/ordens/<%= r.id %>" class="btn btn-secondary btn-sm">Ver</a></td>
+                      <td>
+                        <div class="btn-group">
+                          <a href="/ordens/<%= r.id %>" class="btn btn-secondary btn-sm">Ver</a>
+                          <%- include('../partials/whatsapp-link', { phone: r.customer_phone }) %>
+                        </div>
+                      </td>
                     </tr>
                     <% }); %>
                   </tbody>
@@ -143,7 +148,12 @@
                       <td><%= r.description && r.description.length > 40 ? r.description.substring(0, 40) + '...' : (r.description || '-') %></td>
                       <td class="valor">R$ <%= (r.price_estimate || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
                       <td><%= r.status === 'Aberta' ? 'Aberta' : 'Em andamento' %></td>
-                      <td><a href="/ordens/<%= r.id %>" class="btn btn-secondary btn-sm">Ver</a></td>
+                      <td>
+                        <div class="btn-group">
+                          <a href="/ordens/<%= r.id %>" class="btn btn-secondary btn-sm">Ver</a>
+                          <%- include('../partials/whatsapp-link', { phone: r.customer_phone }) %>
+                        </div>
+                      </td>
                     </tr>
                     <% }); %>
                   </tbody>

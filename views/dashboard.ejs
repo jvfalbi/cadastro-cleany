@@ -61,6 +61,7 @@
                   <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <% if (a.status === 'Aberta') { %><span class="badge badge-open">Aberta</span><% } else if (a.status === 'Em andamento') { %><span class="badge badge-progress">Em andamento</span><% } else if (a.status === 'Concluída') { %><span class="badge badge-done">Concluída</span><% } else { %><span class="badge"><%= a.status %></span><% } %>
                     <a href="/ordens/<%= a.id %>" class="btn btn-secondary btn-sm">Ver</a>
+                    <%- include('partials/whatsapp-link', { phone: a.customer_phone }) %>
                   </div>
                 </li>
                 <% }); %>

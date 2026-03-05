@@ -417,10 +417,77 @@ a {
   font-size: 0.78rem;
 }
 
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+}
+
+.btn-icon svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 .btn-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.28rem;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  box-sizing: border-box;
+  font-size: 0.78rem;
+  border-radius: 50%;
+  background: #25d366;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s, transform 0.08s;
+}
+
+.btn-whatsapp:hover {
+  background: #20bd5a;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-whatsapp svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  display: block;
+  vertical-align: middle;
+  transform: translate(0.5px, 0.5px);
+}
+
+.btn-group .btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.28rem;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  box-sizing: border-box;
+}
+
+.btn-group .btn-whatsapp svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+  vertical-align: middle;
+  transform: translate(0.5px, 0.5px); /* ajuste fino para centralizar o desenho do logo */
 }
 
 /* Filtros na mesma linha dos títulos (cabeçalho azul) */
@@ -581,6 +648,11 @@ tbody tr:hover {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+.form-group .btn-whatsapp {
+  align-self: flex-start;
+  width: auto;
 }
 
 label {
@@ -903,6 +975,29 @@ textarea {
   font-weight: 500;
   color: var(--text-main);
   margin-bottom: 0.25rem;
+}
+
+.calendar-event-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.2rem;
+}
+
+.calendar-event-wrap .btn-whatsapp {
+  padding: 0.15rem 0.35rem;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.calendar-event-wrap .btn-whatsapp svg {
+  width: 12px;
+  height: 12px;
+}
+
+.calendar-event-wrap .calendar-event {
+  flex: 1;
+  min-width: 0;
 }
 
 .calendar-events {

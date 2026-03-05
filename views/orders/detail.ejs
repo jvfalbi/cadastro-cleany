@@ -35,8 +35,8 @@
                   Ordem de serviço #<%= order.id %>
                 </div>
                 <div class="page-subtitle">
-                  <%= order.customer_name %> &mdash;
-                  <%= new Date(order.created_at).toLocaleString('pt-BR') %>
+                  <%= order.customer_name %>
+                  <span class="no-print"> &mdash; <%= new Date(order.created_at).toLocaleString('pt-BR') %></span>
                 </div>
               </div>
               <div class="btn-group no-print">
@@ -70,7 +70,10 @@
                 </div>
                 <div>
                   <div class="detail-label">Telefone</div>
-                  <div class="detail-value"><%= order.phone || '-' %></div>
+                  <div class="detail-value">
+                    <%= order.phone || '-' %>
+                    <%- include('../partials/whatsapp-link', { phone: order.phone }) %>
+                  </div>
                 </div>
                 <div>
                   <div class="detail-label">E-mail</div>
@@ -114,13 +117,13 @@
                   <div class="detail-label">Horário previsto</div>
                   <div class="detail-value"><%= order.due_time || '-' %></div>
                 </div>
-                <div>
+                <div class="no-print">
                   <div class="detail-label">Criada em</div>
                   <div class="detail-value">
                     <%= new Date(order.created_at).toLocaleString('pt-BR') %>
                   </div>
                 </div>
-                <div>
+                <div class="no-print">
                   <div class="detail-label">Última atualização</div>
                   <div class="detail-value">
                     <%= new Date(order.updated_at).toLocaleString('pt-BR') %>

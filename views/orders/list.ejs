@@ -113,12 +113,10 @@
                     </td>
                     <td><%= dataAbertura %></td>
                     <td>
-                      <a
-                        href="/ordens/<%= o.id %>"
-                        class="btn btn-secondary btn-sm"
-                      >
-                        Detalhes
-                      </a>
+                      <div class="btn-group">
+                        <a href="/ordens/<%= o.id %>" class="btn btn-secondary btn-sm">Detalhes</a>
+                        <%- include('../partials/whatsapp-link', { phone: o.customer_phone }) %>
+                      </div>
                     </td>
                   </tr>
                   <% }); %> <% } %>
