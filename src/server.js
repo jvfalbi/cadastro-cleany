@@ -388,6 +388,80 @@ app.post('/servicos/:id/excluir', (req, res) => {
   });
 });
 
+app.get('/financeiro', (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  let de = req.query.de || '';
+  let ate = req.query.ate || '';
+  if (!de || !ate) {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    de = de || firstDay.toISOString().slice(0, 10);
+    ate = ate || lastDay.toISOString().slice(0, 10);
+  }
+
+  const recebidoSql = `
+    SELECT COALESCE(SUM(COALESCE(price_final, price_estimate, 0)), 0) AS total
+    FROM service_orders
+    WHERE status = 'Concluída' AND date(updated_at) >= ? AND date(updated_at) <= ?
+  `;
+  const aReceberSql = `
+    SELECT COALESCE(SUM(COALESCE(price_estimate, 0)), 0) AS total
+    FROM service_orders
+    WHERE status IN ('Aberta', 'Em andamento') AND due_date >= date('now', 'localtime')
+  `;
+  const aReceberPeriodoSql = `
+    SELECT COALESCE(SUM(COALESCE(price_estimate, 0)), 0) AS total
+    FROM service_orders
+    WHERE status IN ('Aberta', 'Em andamento') AND due_date >= ? AND due_date <= ?
+  `;
+  const listRecebidasSql = `
+    SELECT so.id, so.updated_at, so.price_final, so.price_estimate, so.description, c.name AS customer_name
+    FROM service_orders so
+    JOIN customers c ON c.id = so.customer_id
+    WHERE so.status = 'Concluída' AND date(so.updated_at) >= ? AND date(so.updated_at) <= ?
+    ORDER BY so.updated_at DESC
+  `;
+  const listAReceberSql = `
+    SELECT so.id, so.due_date, so.due_time, so.price_estimate, so.description, c.name AS customer_name, so.status
+    FROM service_orders so
+    JOIN customers c ON c.id = so.customer_id
+    WHERE so.status IN ('Aberta', 'Em andamento') AND so.due_date >= date('now', 'localtime')
+    ORDER BY so.due_date ASC, so.due_time ASC
+  `;
+
+  db.get(recebidoSql, [de, ate], (err, rowRecebido) => {
+    if (err) return res.status(500).send('Erro ao carregar financeiro.');
+    const recebidoPeriodo = rowRecebido ? rowRecebido.total : 0;
+
+    db.get(aReceberSql, [], (err2, rowAReceber) => {
+      if (err2) return res.status(500).send('Erro ao carregar financeiro.');
+      const aReceberTotal = rowAReceber ? rowAReceber.total : 0;
+
+      db.get(aReceberPeriodoSql, [de, ate], (err3, rowPeriodo) => {
+        if (err3) return res.status(500).send('Erro ao carregar financeiro.');
+        const aReceberNoPeriodo = rowPeriodo ? rowPeriodo.total : 0;
+
+        db.all(listRecebidasSql, [de, ate], (err4, listaRecebidas) => {
+          if (err4) return res.status(500).send('Erro ao carregar financeiro.');
+          db.all(listAReceberSql, [], (err5, listaAReceber) => {
+            if (err5) return res.status(500).send('Erro ao carregar financeiro.');
+            res.render('financeiro', {
+              de,
+              ate,
+              recebidoPeriodo,
+              aReceberTotal,
+              aReceberNoPeriodo,
+              listaRecebidas: listaRecebidas || [],
+              listaAReceber: listaAReceber || [],
+            });
+          });
+        });
+      });
+    });
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Financeiro - Cleany</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      .finance-filter { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; margin-bottom: 1.5rem; }
+      .finance-filter .form-group { margin-bottom: 0; }
+      .finance-filter label { font-size: 0.8rem; }
+      .finance-quick { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+      .finance-quick .btn { font-size: 0.85rem; padding: 0.4rem 0.75rem; }
+      .finance-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+      .finance-card { background: #fff; border-radius: 12px; padding: 1.25rem; border: 1px solid var(--border-soft); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+      .finance-card .finance-card-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.35rem; }
+      .finance-card .finance-card-value { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+      .finance-card.recebido .finance-card-value { color: var(--primary-green); }
+      .finance-card.a-receber .finance-card-value { color: var(--primary-blue); }
+      .finance-card.previsao .finance-card-value { color: #b45309; }
+      .finance-section { margin-bottom: 2rem; }
+      .finance-section h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-soft); padding-bottom: 0.4rem; }
+      .finance-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+      .finance-table th, .finance-table td { padding: 0.5rem 0.4rem; text-align: left; border-bottom: 1px solid var(--border-soft); }
+      .finance-table th { font-weight: 600; color: var(--text-muted); font-size: 0.8rem; }
+      .finance-table .valor { font-weight: 600; white-space: nowrap; }
+      .finance-empty { color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0; }
+      .finance-period-label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="layout">
+        <%- include('partials/navbar') %>
+        <main class="main-content">
+          <div class="container">
+            <div class="page-header">
+              <div>
+                <div class="page-title">Financeiro</div>
+                <div class="page-subtitle">Visão de recebimentos e previsão de entradas.</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 style="margin-top: 0;">Filtrar por período</h2>
+              <form method="get" action="/financeiro" class="finance-filter">
+                <div class="form-group">
+                  <label for="de">Data início</label>
+                  <input type="date" id="de" name="de" value="<%= de %>" />
+                </div>
+                <div class="form-group">
+                  <label for="ate">Data fim</label>
+                  <input type="date" id="ate" name="ate" value="<%= ate %>" />
+                </div>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <div class="finance-quick" style="margin-left: 0.5rem;">
+                  <span style="font-size: 0.85rem; color: var(--text-muted);">Atalhos:</span>
+                  <% var now = new Date(); var m1 = new Date(now.getFullYear(), now.getMonth(), 1); var m2 = new Date(now.getFullYear(), now.getMonth() + 1, 0); var m3 = new Date(now.getFullYear(), now.getMonth() - 1, 1); var m4 = new Date(now.getFullYear(), now.getMonth(), 0); var y1 = new Date(now.getFullYear(), 0, 1); var y2 = new Date(now.getFullYear(), 11, 31); %>
+                  <a href="/financeiro?de=<%= m1.toISOString().slice(0,10) %>&ate=<%= m2.toISOString().slice(0,10) %>" class="btn btn-secondary btn-sm">Este mês</a>
+                  <a href="/financeiro?de=<%= m3.toISOString().slice(0,10) %>&ate=<%= m4.toISOString().slice(0,10) %>" class="btn btn-secondary btn-sm">Mês passado</a>
+                  <a href="/financeiro?de=<%= y1.toISOString().slice(0,10) %>&ate=<%= y2.toISOString().slice(0,10) %>" class="btn btn-secondary btn-sm">Este ano</a>
+                </div>
+              </form>
+            </div>
+
+            <div class="finance-period-label">Período: <%= new Date(de + 'T12:00:00').toLocaleDateString('pt-BR') %> a <%= new Date(ate + 'T12:00:00').toLocaleDateString('pt-BR') %></div>
+
+            <div class="finance-stats">
+              <div class="finance-card recebido">
+                <div class="finance-card-label">Recebido no período</div>
+                <div class="finance-card-value">R$ <%= (recebidoPeriodo || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></div>
+              </div>
+              <div class="finance-card a-receber">
+                <div class="finance-card-label">A receber (total futuro)</div>
+                <div class="finance-card-value">R$ <%= (aReceberTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></div>
+              </div>
+              <div class="finance-card previsao">
+                <div class="finance-card-label">Previsão no período</div>
+                <div class="finance-card-value">R$ <%= (aReceberNoPeriodo || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></div>
+              </div>
+            </div>
+
+            <div class="finance-section">
+              <div class="card">
+                <h2>Recebido no período</h2>
+                <% if (!listaRecebidas || listaRecebidas.length === 0) { %>
+                <p class="finance-empty">Nenhum recebimento no período.</p>
+                <% } else { %>
+                <table class="finance-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Cliente</th>
+                      <th>Descrição</th>
+                      <th>Valor</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% listaRecebidas.forEach(function(r) {
+                      var val = r.price_final != null ? r.price_final : r.price_estimate;
+                      var dataStr = r.updated_at ? new Date(r.updated_at).toLocaleDateString('pt-BR') : '-';
+                    %>
+                    <tr>
+                      <td><%= dataStr %></td>
+                      <td><%= r.customer_name %></td>
+                      <td><%= r.description && r.description.length > 40 ? r.description.substring(0, 40) + '...' : (r.description || '-') %></td>
+                      <td class="valor">R$ <%= (val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                      <td><a href="/ordens/<%= r.id %>" class="btn btn-secondary btn-sm">Ver</a></td>
+                    </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+                <% } %>
+              </div>
+            </div>
+
+            <div class="finance-section">
+              <div class="card">
+                <h2>Lançamentos futuros (a receber)</h2>
+                <% if (!listaAReceber || listaAReceber.length === 0) { %>
+                <p class="finance-empty">Nenhuma O.S. aberta com data futura.</p>
+                <% } else { %>
+                <table class="finance-table">
+                  <thead>
+                    <tr>
+                      <th>Data prevista</th>
+                      <th>Cliente</th>
+                      <th>Descrição</th>
+                      <th>Valor est.</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% listaAReceber.forEach(function(r) {
+                      var dataStr = r.due_date ? new Date(r.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : '-';
+                      var horaStr = (r.due_time || '').slice(0, 5);
+                    %>
+                    <tr>
+                      <td><%= dataStr %> <%= horaStr ? horaStr : '' %></td>
+                      <td><%= r.customer_name %></td>
+                      <td><%= r.description && r.description.length > 40 ? r.description.substring(0, 40) + '...' : (r.description || '-') %></td>
+                      <td class="valor">R$ <%= (r.price_estimate || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                      <td><%= r.status === 'Aberta' ? 'Aberta' : 'Em andamento' %></td>
+                      <td><a href="/ordens/<%= r.id %>" class="btn btn-secondary btn-sm">Ver</a></td>
+                    </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
