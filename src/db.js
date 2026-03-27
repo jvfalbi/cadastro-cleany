@@ -19,9 +19,24 @@ db.serialize(() => {
       email TEXT,
       address TEXT,
       document TEXT,
-      notes TEXT
+      notes TEXT,
+      ordem_planilha INTEGER,
+      codigo TEXT,
+      nome_fantasia TEXT
     )`
   );
+  db.run('ALTER TABLE customers ADD COLUMN ordem_planilha INTEGER', (err) => {
+    if (err && !err.message.includes('duplicate')) console.error('ordem_planilha:', err.message);
+  });
+  db.run('ALTER TABLE customers ADD COLUMN codigo TEXT', (err) => {
+    if (err && !err.message.includes('duplicate')) console.error('codigo:', err.message);
+  });
+  db.run('ALTER TABLE customers ADD COLUMN nome_fantasia TEXT', (err) => {
+    if (err && !err.message.includes('duplicate')) console.error('nome_fantasia:', err.message);
+  });
+  db.run('UPDATE customers SET ordem_planilha = id WHERE ordem_planilha IS NULL', (err) => {
+    if (err) console.error('backfill ordem_planilha:', err.message);
+  });
 
   db.run(
     `CREATE TABLE IF NOT EXISTS service_orders (

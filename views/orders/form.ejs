@@ -47,14 +47,22 @@
             <div class="card">
               <form id="order-form" action="/ordens" method="post">
                 <div class="form-grid">
-                  <div class="form-group">
-                    <label for="customer_id">Cliente*</label>
-                    <select id="customer_id" name="customer_id" required>
-                      <option value="">Selecione um cliente</option>
-                      <% customers.forEach(function (c) { %>
-                      <option value="<%= c.id %>"><%= c.name %></option>
-                      <% }); %>
-                    </select>
+                  <div class="form-group customer-picker">
+                    <label for="customer_search">Cliente*</label>
+                    <div class="customer-picker-inner">
+                      <input type="hidden" name="customer_id" id="customer_id" value="" />
+                      <input
+                        type="text"
+                        id="customer_search"
+                        autocomplete="off"
+                        placeholder="Digite nome ou código para buscar..."
+                        aria-autocomplete="list"
+                        aria-controls="customer_results"
+                        aria-expanded="false"
+                      />
+                      <div id="customer_results" class="customer-search-results" role="listbox" hidden></div>
+                    </div>
+                    <p class="hint" id="customer_picker_hint">Digite para filtrar; clique no cliente para selecionar.</p>
                   </div>
 
                   <div class="form-group">
@@ -131,6 +139,14 @@
       function imprimirOS() {
         var form = document.getElementById('order-form');
         if (!form) return;
+        var hid = document.getElementById('customer_id');
+        var searchInput = document.getElementById('customer_search');
+        if (hid && !hid.value && searchInput) {
+          searchInput.setCustomValidity('Selecione um cliente na lista ao digitar.');
+          searchInput.reportValidity();
+          return;
+        }
+        if (searchInput) searchInput.setCustomValidity('');
         if (form.checkValidity()) {
           window.print();
         } else {
@@ -138,6 +154,110 @@
         }
       }
       (function () {
+        var CUSTOMERS = <%- JSON.stringify((customers || []).map(function (c) {
+          return { id: c.id, name: c.name || '', codigo: (c.codigo || '').toString().trim() };
+        })) %>;
+
+        function norm(s) {
+          return (s || '')
+            .toString()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+        }
+
+        var hid = document.getElementById('customer_id');
+        var searchInput = document.getElementById('customer_search');
+        var resultsEl = document.getElementById('customer_results');
+
+        function showResults(show) {
+          if (!resultsEl) return;
+          resultsEl.hidden = !show;
+          if (searchInput) searchInput.setAttribute('aria-expanded', show ? 'true' : 'false');
+        }
+
+        function renderResults(q) {
+          if (!resultsEl) return;
+          var nq = norm(q);
+          var list = CUSTOMERS.filter(function (c) {
+            if (!nq) return false;
+            return norm(c.name).indexOf(nq) !== -1 || norm(c.codigo).indexOf(nq) !== -1 || String(c.id) === q.trim();
+          });
+          if (list.length > 80) list = list.slice(0, 80);
+          resultsEl.innerHTML = '';
+          if (list.length === 0) {
+            var empty = document.createElement('div');
+            empty.className = 'customer-search-empty';
+            empty.textContent = nq
+              ? 'Nenhum cliente encontrado. Tente outro termo.'
+              : 'Digite pelo menos uma letra ou número para buscar.';
+            resultsEl.appendChild(empty);
+            showResults(true);
+            return;
+          }
+          list.forEach(function (c) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'customer-search-item';
+            btn.setAttribute('role', 'option');
+            btn.dataset.id = String(c.id);
+            var line1 = document.createElement('span');
+            line1.textContent = c.name || '(sem nome)';
+            btn.appendChild(line1);
+            if (c.codigo) {
+              var meta = document.createElement('span');
+              meta.className = 'customer-search-meta';
+              meta.textContent = 'Código: ' + c.codigo;
+              btn.appendChild(meta);
+            }
+            btn.addEventListener('mousedown', function (e) {
+              e.preventDefault();
+            });
+            btn.addEventListener('click', function () {
+              hid.value = c.id;
+              searchInput.value = c.name;
+              searchInput.setCustomValidity('');
+              showResults(false);
+            });
+            resultsEl.appendChild(btn);
+          });
+          showResults(true);
+        }
+
+        if (searchInput && hid) {
+          searchInput.addEventListener('input', function () {
+            hid.value = '';
+            renderResults(this.value);
+          });
+          searchInput.addEventListener('focus', function () {
+            if (norm(this.value)) renderResults(this.value);
+          });
+          searchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+              showResults(false);
+            }
+          });
+          document.addEventListener('click', function (e) {
+            if (!resultsEl || resultsEl.hidden) return;
+            var wrap = document.querySelector('.customer-picker-inner');
+            if (wrap && !wrap.contains(e.target)) showResults(false);
+          });
+        }
+
+        var orderForm = document.getElementById('order-form');
+        if (orderForm && hid && searchInput) {
+          orderForm.addEventListener('submit', function (e) {
+            if (!hid.value) {
+              e.preventDefault();
+              searchInput.setCustomValidity('Selecione um cliente na lista ao digitar.');
+              searchInput.reportValidity();
+              renderResults(searchInput.value);
+              return;
+            }
+            searchInput.setCustomValidity('');
+          });
+        }
+
         var slots = [];
         for (var h = 8; h <= 17; h++) {
           var hh = h < 10 ? '0' + h : '' + h;

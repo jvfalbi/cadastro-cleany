@@ -19,6 +19,7 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--background-soft);
   color: var(--text-main);
+  overflow-x: hidden;
 }
 
 a {
@@ -124,6 +125,7 @@ a {
 .main-content {
   flex: 1;
   display: flex;
+  min-width: 0;
 }
 
 .navbar {
@@ -187,9 +189,11 @@ a {
 
 .container {
   max-width: 1100px;
+  width: 100%;
   margin: 1.5rem auto 2rem;
   padding: 0 1rem;
   flex: 1;
+  min-width: 0;
 }
 
 .page-header {
@@ -217,6 +221,8 @@ a {
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
   padding: 1.25rem 1.5rem;
   border: 1px solid rgba(15, 118, 110, 0.08);
+  min-width: 0;
+  overflow-x: auto;
 }
 
 .card + .card {
@@ -578,6 +584,26 @@ table {
   font-size: 0.9rem;
 }
 
+.table-clientes {
+  table-layout: fixed;
+  max-width: 100%;
+}
+
+.table-clientes tbody td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 0;
+}
+.table-clientes tbody td:last-child {
+  max-width: none;
+  overflow: visible;
+}
+
+.table-clientes .filter-search {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 thead {
   background: linear-gradient(120deg, rgba(0, 166, 81, 0.08), rgba(31, 60, 136, 0.06));
 }
@@ -642,6 +668,66 @@ tbody tr:hover {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.85rem 1rem;
+}
+
+.customer-picker-inner {
+  position: relative;
+}
+
+.customer-search-results {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 20;
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.customer-search-results[hidden] {
+  display: none !important;
+}
+
+.customer-search-item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.customer-search-item:last-child {
+  border-bottom: none;
+}
+
+.customer-search-item:hover,
+.customer-search-item:focus {
+  background: rgba(0, 166, 81, 0.08);
+  outline: none;
+}
+
+.customer-search-item .customer-search-meta {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.customer-search-empty {
+  padding: 0.65rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .form-group {
@@ -804,6 +890,16 @@ textarea {
   resize: vertical;
 }
 
+.form-error {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(224, 36, 36, 0.1);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
 .form-actions {
   margin-top: 1rem;
   display: flex;
@@ -879,9 +975,16 @@ textarea {
 
 .calendar-week {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  min-height: 100px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   border-bottom: 1px solid var(--border-soft);
+  align-items: stretch;
+}
+
+.calendar-week:not(.calendar-week--head) {
+  grid-auto-rows: 1fr;
+  height: 7.5rem;
+  min-height: 7.5rem;
+  max-height: 7.5rem;
 }
 
 .calendar-week:last-child {
@@ -909,6 +1012,10 @@ textarea {
   display: flex;
   flex-direction: column;
   background: #fff;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  height: 100%;
 }
 
 .calendar-day-add {
@@ -977,35 +1084,16 @@ textarea {
   margin-bottom: 0.25rem;
 }
 
-.calendar-event-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-bottom: 0.2rem;
-}
-
-.calendar-event-wrap .btn-whatsapp {
-  padding: 0.15rem 0.35rem;
-  font-size: 0.7rem;
-  flex-shrink: 0;
-}
-
-.calendar-event-wrap .btn-whatsapp svg {
-  width: 12px;
-  height: 12px;
-}
-
-.calendar-event-wrap .calendar-event {
-  flex: 1;
-  min-width: 0;
-}
-
 .calendar-events {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .calendar-event {
@@ -1018,6 +1106,9 @@ textarea {
   text-decoration: none;
   border-left: 3px solid var(--primary-green);
   transition: background 0.15s ease;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .calendar-event:hover {
@@ -1029,6 +1120,9 @@ textarea {
   font-weight: 600;
   color: var(--text-muted);
   font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .calendar-event-title {
@@ -1036,6 +1130,7 @@ textarea {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -1072,8 +1167,10 @@ textarea {
     align-items: flex-start;
   }
 
-  .calendar-week {
-    min-height: 70px;
+  .calendar-week:not(.calendar-week--head) {
+    height: 5.75rem;
+    min-height: 5.75rem;
+    max-height: 5.75rem;
   }
 
   .calendar-day-num {

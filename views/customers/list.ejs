@@ -23,10 +23,25 @@
             </div>
 
             <div class="card">
-              <% function esc(v) { return (v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); } %>
-              <table>
+              <% function esc(v) {
+  var s = (v || '').toString().replace(/\0/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+} %>
+              <table class="table-clientes">
+                <colgroup>
+                  <col style="width: 7rem" />
+                  <col style="width: 18%" />
+                  <col style="width: 11%" />
+                  <col style="width: 14%" />
+                  <col />
+                  <col style="width: 10rem" />
+                </colgroup>
                 <thead>
                   <tr class="filter-row">
+                    <th>
+                      <span class="th-label">Código</span>
+                      <input type="text" id="filter-codigo" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por código" />
+                    </th>
                     <th>
                       <span class="th-label">Nome</span>
                       <input type="text" id="filter-nome" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por nome" />
@@ -36,8 +51,8 @@
                       <input type="text" id="filter-cpf" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por CPF" />
                     </th>
                     <th>
-                      <span class="th-label">E-mail</span>
-                      <input type="text" id="filter-email" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por e-mail" />
+                      <span class="th-label">Celular</span>
+                      <input type="text" id="filter-celular" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por celular" />
                     </th>
                     <th>
                       <span class="th-label">Endereço</span>
@@ -52,17 +67,18 @@
                 <tbody>
                   <% if (!customers || customers.length === 0) { %>
                   <tr class="filterable-row">
-                    <td colspan="5" class="table-empty">
+                    <td colspan="6" class="table-empty">
                       Nenhum cliente cadastrado ainda. Clique em "Novo cliente"
                       para começar.
                     </td>
                   </tr>
                   <% } else { %> <% customers.forEach(function (c) { %>
-                  <tr class="filterable-row" data-nome="<%= esc((c.name || '').toLowerCase()) %>" data-cpf="<%= esc((c.document || '').toLowerCase()) %>" data-email="<%= esc((c.email || '').toLowerCase()) %>" data-endereco="<%= esc((c.address || '').toLowerCase()) %>">
-                    <td><%= c.name %></td>
-                    <td><%= c.document || '-' %></td>
-                    <td><%= c.email || '-' %></td>
-                    <td><%= c.address || '-' %></td>
+                  <tr class="filterable-row" data-codigo="<%= esc((c.codigo || '').toLowerCase()) %>" data-nome="<%= esc((c.name || '').toLowerCase()) %>" data-cpf="<%= esc((c.document || '').toLowerCase()) %>" data-celular="<%= esc((c.phone || '').toLowerCase()) %>" data-endereco="<%= esc((c.address || '').toLowerCase()) %>">
+                    <td><%= esc(c.codigo || '-') %></td>
+                    <td><%= esc(c.name || '') %></td>
+                    <td><%= esc(c.document || '-') %></td>
+                    <td><%= esc(c.phone || '-') %></td>
+                    <td><%= esc(c.address || '-') %></td>
                     <td>
                       <div class="btn-group">
                         <a
@@ -100,16 +116,18 @@
     <script>
       (function () {
         var rows = document.querySelectorAll('.filterable-row');
+        var filterCodigo = document.getElementById('filter-codigo');
         var filterNome = document.getElementById('filter-nome');
         var filterCpf = document.getElementById('filter-cpf');
-        var filterEmail = document.getElementById('filter-email');
+        var filterCelular = document.getElementById('filter-celular');
         var filterEndereco = document.getElementById('filter-endereco');
         var filterClear = document.getElementById('filter-clear');
 
         function applyFilters() {
+          var codigo = (filterCodigo && filterCodigo.value || '').trim().toLowerCase();
           var nome = (filterNome && filterNome.value || '').trim().toLowerCase();
           var cpf = (filterCpf && filterCpf.value || '').trim().toLowerCase();
-          var email = (filterEmail && filterEmail.value || '').trim().toLowerCase();
+          var celular = (filterCelular && filterCelular.value || '').trim().toLowerCase();
           var endereco = (filterEndereco && filterEndereco.value || '').trim().toLowerCase();
 
           rows.forEach(function (tr) {
@@ -117,23 +135,25 @@
               tr.style.display = '';
               return;
             }
+            var matchCodigo = !codigo || (tr.dataset.codigo && tr.dataset.codigo.indexOf(codigo) !== -1);
             var matchNome = !nome || (tr.dataset.nome && tr.dataset.nome.indexOf(nome) !== -1);
             var matchCpf = !cpf || (tr.dataset.cpf && tr.dataset.cpf.indexOf(cpf) !== -1);
-            var matchEmail = !email || (tr.dataset.email && tr.dataset.email.indexOf(email) !== -1);
+            var matchCelular = !celular || (tr.dataset.celular && tr.dataset.celular.indexOf(celular) !== -1);
             var matchEndereco = !endereco || (tr.dataset.endereco && tr.dataset.endereco.indexOf(endereco) !== -1);
-            tr.style.display = (matchNome && matchCpf && matchEmail && matchEndereco) ? '' : 'none';
+            tr.style.display = (matchCodigo && matchNome && matchCpf && matchCelular && matchEndereco) ? '' : 'none';
           });
         }
 
         function clearFilters() {
+          if (filterCodigo) filterCodigo.value = '';
           if (filterNome) filterNome.value = '';
           if (filterCpf) filterCpf.value = '';
-          if (filterEmail) filterEmail.value = '';
+          if (filterCelular) filterCelular.value = '';
           if (filterEndereco) filterEndereco.value = '';
           applyFilters();
         }
 
-        [filterNome, filterCpf, filterEmail, filterEndereco].forEach(function (el) {
+        [filterCodigo, filterNome, filterCpf, filterCelular, filterEndereco].forEach(function (el) {
           if (el) el.addEventListener('input', applyFilters);
         });
         if (filterClear) filterClear.addEventListener('click', clearFilters);
@@ -141,4 +161,3 @@
     </script>
   </body>
 </html>
-

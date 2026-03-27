@@ -89,11 +89,11 @@ app.get('/', (req, res) => {
 });
 
 app.get('/clientes', (req, res) => {
-  db.all('SELECT * FROM customers ORDER BY name', (err, rows) => {
+  db.all("SELECT * FROM customers ORDER BY COALESCE(CAST(NULLIF(TRIM(codigo), '') AS INTEGER), 999999), codigo, id", (err, rows) => {
     if (err) {
       return res.status(500).send('Erro ao carregar clientes.');
     }
-    res.render('customers/list', { customers: rows });
+    res.render('customers/list', { customers: rows || [] });
   });
 });
 
@@ -103,14 +103,37 @@ app.get('/clientes/novo', (req, res) => {
 
 app.post('/clientes', (req, res) => {
   const { name, phone, email, address, document, notes } = req.body;
-  const stmt = db.prepare(
-    'INSERT INTO customers (name, phone, email, address, document, notes) VALUES (?, ?, ?, ?, ?, ?)'
-  );
-  stmt.run(name, phone, email, address, document, notes, (err) => {
-    if (err) {
-      return res.status(500).send('Erro ao salvar cliente.');
+  const codigo = (req.body.codigo || '').trim() || null;
+  const nome_fantasia = (req.body.nome_fantasia || '').trim() || null;
+  const checkCodigo = (cb) => {
+    if (!codigo) return cb(null, false);
+    db.get('SELECT id FROM customers WHERE TRIM(COALESCE(codigo, "")) = ?', [codigo], (err, row) => {
+      if (err) return cb(err, true);
+      cb(null, !!row);
+    });
+  };
+  checkCodigo((err, isDuplicate) => {
+    if (err) return res.status(500).send('Erro ao salvar cliente.');
+    if (isDuplicate) {
+      return res.render('customers/form', {
+        customer: { codigo, name, nome_fantasia, phone, email, address, document, notes },
+        error: 'Este código já está em uso por outro cliente. Escolha outro ou deixe em branco.',
+      });
     }
-    res.redirect('/clientes');
+    db.get('SELECT COALESCE(MAX(ordem_planilha), 0) + 1 AS next FROM customers', [], (err, row) => {
+      if (err) return res.status(500).send('Erro ao salvar cliente.');
+      const ordem = row ? row.next : 1;
+      const stmt = db.prepare(
+        'INSERT INTO customers (name, phone, email, address, document, notes, ordem_planilha, codigo, nome_fantasia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      );
+      stmt.run(name, phone, email, address, document, notes, ordem, codigo, nome_fantasia, (err2) => {
+        if (err2) {
+          return res.status(500).send('Erro ao salvar cliente.');
+        }
+        res.redirect('/clientes');
+      });
+      stmt.finalize();
+    });
   });
 });
 
@@ -127,14 +150,32 @@ app.get('/clientes/:id/editar', (req, res) => {
 app.post('/clientes/:id', (req, res) => {
   const { id } = req.params;
   const { name, phone, email, address, document, notes } = req.body;
-  const stmt = db.prepare(
-    'UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, document = ?, notes = ? WHERE id = ?'
-  );
-  stmt.run(name, phone, email, address, document, notes, id, (err) => {
-    if (err) {
-      return res.status(500).send('Erro ao atualizar cliente.');
+  const codigo = (req.body.codigo || '').trim() || null;
+  const nome_fantasia = (req.body.nome_fantasia || '').trim() || null;
+  const checkCodigo = (cb) => {
+    if (!codigo) return cb(null, false);
+    db.get('SELECT id FROM customers WHERE TRIM(COALESCE(codigo, "")) = ? AND id != ?', [codigo, id], (err, row) => {
+      if (err) return cb(err, true);
+      cb(null, !!row);
+    });
+  };
+  checkCodigo((err, isDuplicate) => {
+    if (err) return res.status(500).send('Erro ao atualizar cliente.');
+    if (isDuplicate) {
+      return res.render('customers/form', {
+        customer: { id, codigo, name, nome_fantasia, phone, email, address, document, notes },
+        error: 'Este código já está em uso por outro cliente. Escolha outro ou deixe em branco.',
+      });
     }
-    res.redirect('/clientes');
+    const stmt = db.prepare(
+      'UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, document = ?, notes = ?, codigo = ?, nome_fantasia = ? WHERE id = ?'
+    );
+    stmt.run(name, phone, email, address, document, notes, codigo, nome_fantasia, id, (err) => {
+      if (err) {
+        return res.status(500).send('Erro ao atualizar cliente.');
+      }
+      res.redirect('/clientes');
+    });
   });
 });
 
@@ -202,7 +243,7 @@ app.get('/ordens/nova', (req, res) => {
   const next = (customers, prefillOcupados) => {
     res.render('orders/form', { customers, prefillDate, prefillOcupados: prefillOcupados || [] });
   };
-  db.all('SELECT id, name FROM customers ORDER BY name', (err, customers) => {
+  db.all("SELECT id, name, codigo FROM customers ORDER BY COALESCE(CAST(NULLIF(TRIM(codigo), '') AS INTEGER), 999999), codigo, id", (err, customers) => {
     if (err) {
       return res.status(500).send('Erro ao carregar clientes.');
     }
