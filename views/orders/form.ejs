@@ -136,6 +136,14 @@
 
     </div>
     <script>
+      function syncPrintHorario() {
+        var hid = document.getElementById('due_time');
+        var printDisplay = document.getElementById('print_time_display');
+        if (printDisplay && hid) {
+          var v = (hid.value || '').trim();
+          printDisplay.textContent = v || '—';
+        }
+      }
       function imprimirOS() {
         var form = document.getElementById('order-form');
         if (!form) return;
@@ -147,12 +155,14 @@
           return;
         }
         if (searchInput) searchInput.setCustomValidity('');
+        syncPrintHorario();
         if (form.checkValidity()) {
           window.print();
         } else {
           form.reportValidity();
         }
       }
+      window.addEventListener('beforeprint', syncPrintHorario);
       (function () {
         var CUSTOMERS = <%- JSON.stringify((customers || []).map(function (c) {
           return { id: c.id, name: c.name || '', codigo: (c.codigo || '').toString().trim() };

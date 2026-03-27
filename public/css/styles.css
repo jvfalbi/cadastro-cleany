@@ -354,6 +354,34 @@ a {
 .stat-card.stat-done .stat-value { color: var(--primary-green); }
 .stat-card.stat-cancelled .stat-value { color: var(--danger); }
 
+.table-historico-agenda {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  table-layout: fixed;
+}
+
+.table-historico-agenda th,
+.table-historico-agenda td {
+  padding: 0.55rem 0.45rem;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.table-historico-agenda tbody td:nth-child(5) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-historico-agenda .table-empty {
+  text-align: center;
+  padding: 1.2rem 0.6rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -517,6 +545,27 @@ a {
   box-sizing: border-box;
 }
 
+/* Data no cabeçalho: input nativo abre o calendário do sistema */
+.filter-row .filter-date-input {
+  width: 100%;
+  min-width: 7rem;
+  box-sizing: border-box;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  background: #fff;
+  color: var(--text-main);
+}
+.filter-row .filter-date-input--solo {
+  margin-top: 0.25rem;
+}
+.filter-row .filter-date-input:focus {
+  outline: none;
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 2px rgba(0, 166, 81, 0.15);
+}
+
 .filter-row .filter-actions {
   text-align: right;
   width: 120px;
@@ -576,6 +625,36 @@ a {
 
 .filter-row th .filter-search {
   width: 100%;
+}
+
+/* Filtro por período (mesmo padrão da página Financeiro) */
+.os-period-card .finance-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 0;
+}
+.os-period-card .finance-filter .form-group {
+  margin-bottom: 0;
+}
+.os-period-card .finance-filter label {
+  font-size: 0.8rem;
+}
+.os-period-card .finance-quick {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.os-period-card .finance-quick .btn {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.75rem;
+}
+.os-period-card h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
 }
 
 table {

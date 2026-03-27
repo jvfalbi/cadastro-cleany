@@ -2,7 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <title><%= customer ? 'Editar cliente' : 'Novo cliente' %> - Cleany</title>
+    <title><%= (customer && customer.id) ? 'Editar cliente' : 'Novo cliente' %> - Cleany</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
@@ -15,7 +15,7 @@
             <div class="page-header">
               <div>
                 <div class="page-title">
-                  <%= customer ? 'Editar cliente' : 'Novo cliente' %>
+                  <%= (customer && customer.id) ? 'Editar cliente' : 'Novo cliente' %>
                 </div>
                 <div class="page-subtitle">
                   Dados básicos para contato e emissão de O.S.
@@ -30,22 +30,24 @@
               </div>
               <% } %>
               <form
-                action="<%= customer ? '/clientes/' + customer.id : '/clientes' %>"
+                action="<%= (customer && customer.id) ? '/clientes/' + customer.id : '/clientes' %>"
                 method="post"
               >
                 <div class="form-grid">
+                  <% if (customer && customer.id) { %>
                   <div class="form-group">
                     <label for="codigo">Código</label>
                     <input
                       type="text"
                       id="codigo"
                       name="codigo"
-                      value="<%= customer && customer.codigo ? customer.codigo : '' %>"
+                      value="<%= customer.codigo ? customer.codigo : '' %>"
                       placeholder="Código da planilha"
                     />
                   </div>
+                  <% } %>
                   <div class="form-group">
-                    <label for="name">Razão social*</label>
+                    <label for="name">Nome*</label>
                     <input
                       type="text"
                       id="name"
@@ -66,11 +68,12 @@
                   </div>
 
                   <div class="form-group">
-                    <label for="phone">Telefone / WhatsApp</label>
+                    <label for="phone">Telefone / WhatsApp*</label>
                     <input
                       type="tel"
                       id="phone"
                       name="phone"
+                      required
                       value="<%= customer ? customer.phone : '' %>"
                     />
                     <% if (customer && customer.phone) { %><%- include('../partials/whatsapp-link', { phone: customer.phone }) %><% } %>
@@ -87,11 +90,12 @@
                   </div>
 
                   <div class="form-group">
-                    <label for="document">CPF/CNPJ</label>
+                    <label for="document">CPF/CNPJ*</label>
                     <input
                       type="text"
                       id="document"
                       name="document"
+                      required
                       value="<%= customer ? customer.document : '' %>"
                     />
                   </div>
@@ -117,7 +121,7 @@
                 <div class="form-actions">
                   <div class="btn-group">
                     <button type="submit" class="btn btn-primary">
-                      <%= customer ? 'Salvar alterações' : 'Salvar cliente' %>
+                      <%= (customer && customer.id) ? 'Salvar alterações' : 'Salvar cliente' %>
                     </button>
                     <a href="/clientes" class="btn btn-secondary"
                       >Voltar para lista</a

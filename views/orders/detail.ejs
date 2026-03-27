@@ -14,9 +14,10 @@
         .layout { display: block; }
         .main-content { padding: 0; }
         .container { max-width: 100%; }
-        .card { box-shadow: none; border: 1px solid #ccc; }
+        .card { box-shadow: none; border: 1px solid #ccc; overflow: visible !important; }
         body { background: #fff; }
         .page-header { margin-bottom: 1rem; }
+        .detail-grid { break-inside: avoid; page-break-inside: avoid; }
       }
     </style>
   </head>
@@ -107,15 +108,18 @@
                     %>
                   </div>
                 </div>
-                <div>
-                  <div class="detail-label">Data prevista</div>
+                <div style="grid-column: 1 / -1">
+                  <div class="detail-label">Data e horário previstos</div>
                   <div class="detail-value">
-                    <%= order.due_date ? new Date(order.due_date).toLocaleDateString('pt-BR') : '-' %>
+                    <% 
+                      var hm = order.due_time && String(order.due_time).trim() ? String(order.due_time).trim().slice(0, 5) : '';
+                      if (order.due_date) {
+                    %>
+                    <%= new Date(order.due_date + 'T12:00:00').toLocaleDateString('pt-BR') %><% if (hm) { %> às <%= hm %><% } %>
+                    <% } else { %>
+                    <%= hm ? hm : '—' %>
+                    <% } %>
                   </div>
-                </div>
-                <div>
-                  <div class="detail-label">Horário previsto</div>
-                  <div class="detail-value"><%= order.due_time || '-' %></div>
                 </div>
                 <div class="no-print">
                   <div class="detail-label">Criada em</div>

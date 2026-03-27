@@ -74,9 +74,11 @@ app.use(requireAuth);
 app.get('/', (req, res) => {
   marcarAtrasadasComoConcluidas(() => {
     const sql = `
-      SELECT so.id, so.due_date, so.due_time, so.status, so.description, c.name AS customer_name, c.phone AS customer_phone
+      SELECT so.id, so.due_date, so.due_time, so.status, so.description,
+        COALESCE(NULLIF(TRIM(c.name), ''), '(Cliente removido)') AS customer_name,
+        c.phone AS customer_phone
       FROM service_orders so
-      JOIN customers c ON c.id = so.customer_id
+      LEFT JOIN customers c ON c.id = so.customer_id
       WHERE so.status IN ('Aberta', 'Em andamento') AND so.due_date >= date('now', 'localtime')
       ORDER BY so.due_date ASC, so.due_time ASC
       LIMIT 15
@@ -103,6 +105,36 @@ app.get('/clientes/novo', (req, res) => {
 
 app.post('/clientes', (req, res) => {
   const { name, phone, email, address, document, notes } = req.body;
+  const phoneTrim = (phone || '').trim();
+  if (!phoneTrim) {
+    return res.render('customers/form', {
+      customer: {
+        name,
+        nome_fantasia: (req.body.nome_fantasia || '').trim(),
+        phone,
+        email,
+        address,
+        document,
+        notes,
+      },
+      error: 'Informe o telefone.',
+    });
+  }
+  const documentTrim = (document || '').trim();
+  if (!documentTrim) {
+    return res.render('customers/form', {
+      customer: {
+        name,
+        nome_fantasia: (req.body.nome_fantasia || '').trim(),
+        phone,
+        email,
+        address,
+        document,
+        notes,
+      },
+      error: 'Informe o CPF ou CNPJ.',
+    });
+  }
   const codigo = (req.body.codigo || '').trim() || null;
   const nome_fantasia = (req.body.nome_fantasia || '').trim() || null;
   const checkCodigo = (cb) => {
@@ -126,7 +158,7 @@ app.post('/clientes', (req, res) => {
       const stmt = db.prepare(
         'INSERT INTO customers (name, phone, email, address, document, notes, ordem_planilha, codigo, nome_fantasia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
       );
-      stmt.run(name, phone, email, address, document, notes, ordem, codigo, nome_fantasia, (err2) => {
+      stmt.run(name, phoneTrim, email, address, documentTrim, notes, ordem, codigo, nome_fantasia, (err2) => {
         if (err2) {
           return res.status(500).send('Erro ao salvar cliente.');
         }
@@ -150,6 +182,40 @@ app.get('/clientes/:id/editar', (req, res) => {
 app.post('/clientes/:id', (req, res) => {
   const { id } = req.params;
   const { name, phone, email, address, document, notes } = req.body;
+  const phoneTrim = (phone || '').trim();
+  if (!phoneTrim) {
+    return res.render('customers/form', {
+      customer: {
+        id,
+        codigo: (req.body.codigo || '').trim() || null,
+        name,
+        nome_fantasia: (req.body.nome_fantasia || '').trim(),
+        phone,
+        email,
+        address,
+        document,
+        notes,
+      },
+      error: 'Informe o telefone.',
+    });
+  }
+  const documentTrim = (document || '').trim();
+  if (!documentTrim) {
+    return res.render('customers/form', {
+      customer: {
+        id,
+        codigo: (req.body.codigo || '').trim() || null,
+        name,
+        nome_fantasia: (req.body.nome_fantasia || '').trim(),
+        phone,
+        email,
+        address,
+        document,
+        notes,
+      },
+      error: 'Informe o CPF ou CNPJ.',
+    });
+  }
   const codigo = (req.body.codigo || '').trim() || null;
   const nome_fantasia = (req.body.nome_fantasia || '').trim() || null;
   const checkCodigo = (cb) => {
@@ -170,7 +236,7 @@ app.post('/clientes/:id', (req, res) => {
     const stmt = db.prepare(
       'UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, document = ?, notes = ?, codigo = ?, nome_fantasia = ? WHERE id = ?'
     );
-    stmt.run(name, phone, email, address, document, notes, codigo, nome_fantasia, id, (err) => {
+    stmt.run(name, phoneTrim, email, address, documentTrim, notes, codigo, nome_fantasia, id, (err) => {
       if (err) {
         return res.status(500).send('Erro ao atualizar cliente.');
       }
@@ -190,12 +256,59 @@ app.post('/clientes/:id/excluir', (req, res) => {
   });
 });
 
-app.get('/ordens', (req, res) => {
+app.get('/historico-agendamentos', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   marcarAtrasadasComoConcluidas(() => {
     const sql = `
-      SELECT so.*, c.name AS customer_name, c.phone AS customer_phone
+      SELECT so.*,
+        COALESCE(NULLIF(TRIM(c.name), ''), '(Cliente removido)') AS customer_name,
+        c.phone AS customer_phone
       FROM service_orders so
-      JOIN customers c ON c.id = so.customer_id
+      LEFT JOIN customers c ON c.id = so.customer_id
+      ORDER BY
+        CASE WHEN so.due_date IS NULL OR TRIM(COALESCE(so.due_date, '')) = '' THEN 1 ELSE 0 END,
+        so.due_date DESC,
+        CASE WHEN so.due_time IS NULL OR TRIM(COALESCE(so.due_time, '')) = '' THEN 1 ELSE 0 END,
+        so.due_time DESC,
+        so.id DESC
+    `;
+    db.all(sql, (err, rows) => {
+      if (err) {
+        return res.status(500).send('Erro ao carregar histórico de agendamentos.');
+      }
+      const orders = rows || [];
+      db.all(
+        `SELECT status, COUNT(*) AS total FROM service_orders GROUP BY status`,
+        [],
+        (err2, statusRows) => {
+          db.get('SELECT COUNT(*) AS n FROM service_orders', [], (err3, countRow) => {
+            const stats = {
+              total: !err3 && countRow && countRow.n != null ? countRow.n : orders.length,
+              Aberta: 0,
+              'Em andamento': 0,
+              Concluída: 0,
+              Cancelada: 0,
+            };
+            (statusRows || []).forEach((r) => {
+              stats[r.status] = r.total;
+            });
+            res.render('historico-agendamentos', { orders, stats });
+          });
+        }
+      );
+    });
+  });
+});
+
+app.get('/ordens', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  marcarAtrasadasComoConcluidas(() => {
+    const sql = `
+      SELECT so.*,
+        COALESCE(NULLIF(TRIM(c.name), ''), '(Cliente removido)') AS customer_name,
+        c.phone AS customer_phone
+      FROM service_orders so
+      LEFT JOIN customers c ON c.id = so.customer_id
       ORDER BY so.created_at DESC
     `;
     db.all(sql, (err, rows) => {
@@ -207,11 +320,19 @@ app.get('/ordens', (req, res) => {
         `SELECT status, COUNT(*) AS total FROM service_orders GROUP BY status`,
         [],
         (err2, statusRows) => {
-          const stats = { total: orders.length, Aberta: 0, 'Em andamento': 0, Concluída: 0, Cancelada: 0 };
-          (statusRows || []).forEach((r) => {
-            stats[r.status] = r.total;
+          db.get('SELECT COUNT(*) AS n FROM service_orders', [], (err3, countRow) => {
+            const stats = {
+              total: !err3 && countRow && countRow.n != null ? countRow.n : orders.length,
+              Aberta: 0,
+              'Em andamento': 0,
+              Concluída: 0,
+              Cancelada: 0,
+            };
+            (statusRows || []).forEach((r) => {
+              stats[r.status] = r.total;
+            });
+            res.render('orders/list', { orders, stats });
           });
-          res.render('orders/list', { orders, stats });
         }
       );
     });
@@ -292,9 +413,11 @@ app.post('/ordens', (req, res) => {
 app.get('/ordens/:id', (req, res) => {
   const { id } = req.params;
   const sql = `
-    SELECT so.*, c.name AS customer_name, c.phone, c.email, c.address
+    SELECT so.*,
+      COALESCE(NULLIF(TRIM(c.name), ''), '(Cliente removido)') AS customer_name,
+      c.phone, c.email, c.address
     FROM service_orders so
-    JOIN customers c ON c.id = so.customer_id
+    LEFT JOIN customers c ON c.id = so.customer_id
     WHERE so.id = ?
   `;
   db.get(sql, [id], (err, order) => {
@@ -336,9 +459,11 @@ app.get('/calendario', (req, res) => {
   fim.setDate(fim.getDate() + (6 - ultimoDia.getDay()));
 
   const sql = `
-    SELECT so.*, c.name AS customer_name, c.phone AS customer_phone
+    SELECT so.*,
+      COALESCE(NULLIF(TRIM(c.name), ''), '(Cliente removido)') AS customer_name,
+      c.phone AS customer_phone
     FROM service_orders so
-    JOIN customers c ON c.id = so.customer_id
+    LEFT JOIN customers c ON c.id = so.customer_id
     ORDER BY so.due_date, so.created_at
   `;
   db.all(sql, (err, rows) => {
@@ -469,16 +594,20 @@ app.get('/financeiro', (req, res) => {
     WHERE status IN ('Aberta', 'Em andamento') AND due_date >= ? AND due_date <= ?
   `;
   const listRecebidasSql = `
-    SELECT so.id, so.updated_at, so.price_final, so.price_estimate, so.description, c.name AS customer_name, c.phone AS customer_phone
+    SELECT so.id, so.updated_at, so.price_final, so.price_estimate, so.description,
+      COALESCE(NULLIF(TRIM(c.name), ''), '(Cliente removido)') AS customer_name,
+      c.phone AS customer_phone
     FROM service_orders so
-    JOIN customers c ON c.id = so.customer_id
+    LEFT JOIN customers c ON c.id = so.customer_id
     WHERE so.status = 'Concluída' AND date(so.updated_at) >= ? AND date(so.updated_at) <= ?
     ORDER BY so.updated_at DESC
   `;
   const listAReceberSql = `
-    SELECT so.id, so.due_date, so.due_time, so.price_estimate, so.description, c.name AS customer_name, c.phone AS customer_phone, so.status
+    SELECT so.id, so.due_date, so.due_time, so.price_estimate, so.description,
+      COALESCE(NULLIF(TRIM(c.name), ''), '(Cliente removido)') AS customer_name,
+      c.phone AS customer_phone, so.status
     FROM service_orders so
-    JOIN customers c ON c.id = so.customer_id
+    LEFT JOIN customers c ON c.id = so.customer_id
     WHERE so.status IN ('Aberta', 'Em andamento') AND so.due_date >= date('now', 'localtime')
     ORDER BY so.due_date ASC, so.due_time ASC
   `;

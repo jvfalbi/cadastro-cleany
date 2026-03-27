@@ -2,27 +2,21 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <title>Gerar O.S. - Cleany</title>
+    <title>Histórico de agendamentos - Cleany</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="/css/styles.css" />
-    <style>
-      .os-period-card { margin-bottom: 1.25rem; }
-    </style>
   </head>
   <body>
     <div class="app-shell">
       <div class="layout">
-        <%- include('../partials/navbar') %>
+        <%- include('partials/navbar') %>
         <main class="main-content">
           <div class="container">
             <div class="page-header">
               <div>
-                <div class="page-title">Gerar O.S.</div>
-                <div class="page-subtitle">
-                  Histórico e analítico geral das ordens de serviço.
-                </div>
+                <div class="page-title">Histórico de agendamentos</div>
               </div>
-              <a href="/ordens/nova" class="btn btn-primary">Gerar nova O.S.</a>
+              <a href="/ordens/nova" class="btn btn-primary">+ Nova O.S.</a>
             </div>
 
             <% if (typeof stats !== 'undefined' && stats) { %>
@@ -52,39 +46,31 @@
 
             <% function esc(v) { return (v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); } %>
             <% var servicosUnicos = []; var seenServ = {}; if (orders && orders.length) { orders.forEach(function(o) { var d = (o.description || '').trim(); if (d && !seenServ[d]) { seenServ[d] = true; servicosUnicos.push(d); } }); servicosUnicos.sort(function(a,b) { return a.localeCompare(b, 'pt-BR'); }); } %>
-            <% var now = new Date(); var m1 = new Date(now.getFullYear(), now.getMonth(), 1); var m2 = new Date(now.getFullYear(), now.getMonth() + 1, 0); var m3 = new Date(now.getFullYear(), now.getMonth() - 1, 1); var m4 = new Date(now.getFullYear(), now.getMonth(), 0); var y1 = new Date(now.getFullYear(), 0, 1); var y2 = new Date(now.getFullYear(), 11, 31); %>
-            <div class="card os-period-card">
-              <h2>Filtrar por período (data de abertura)</h2>
-              <form class="finance-filter" id="os-period-form" action="#" onsubmit="return false;">
-                <div class="form-group">
-                  <label for="filter-de">Data início</label>
-                  <input type="date" id="filter-de" name="de" />
-                </div>
-                <div class="form-group">
-                  <label for="filter-ate">Data fim</label>
-                  <input type="date" id="filter-ate" name="ate" />
-                </div>
-                <button type="button" class="btn btn-primary" id="filter-apply-dates">Filtrar</button>
-                <div class="finance-quick">
-                  <span style="font-size: 0.85rem; color: var(--text-muted);">Atalhos:</span>
-                  <button type="button" class="btn btn-secondary btn-sm js-os-period-quick" data-de="<%= m1.toISOString().slice(0,10) %>" data-ate="<%= m2.toISOString().slice(0,10) %>">Este mês</button>
-                  <button type="button" class="btn btn-secondary btn-sm js-os-period-quick" data-de="<%= m3.toISOString().slice(0,10) %>" data-ate="<%= m4.toISOString().slice(0,10) %>">Mês passado</button>
-                  <button type="button" class="btn btn-secondary btn-sm js-os-period-quick" data-de="<%= y1.toISOString().slice(0,10) %>" data-ate="<%= y2.toISOString().slice(0,10) %>">Este ano</button>
-                </div>
-              </form>
-            </div>
-
             <div class="card">
-              <table>
+              <table class="table-historico-agenda">
                 <thead>
                   <tr class="filter-row">
                     <th>
                       <span class="th-label">#</span>
-                      <input type="text" id="filter-id" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por número" />
+                      <input type="text" id="filter-id" class="filter-search" placeholder="Pesquisar..." title="Número da O.S." />
                     </th>
                     <th>
                       <span class="th-label">Cliente</span>
-                      <input type="text" id="filter-cliente" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por cliente" />
+                      <input type="text" id="filter-cliente" class="filter-search" placeholder="Pesquisar..." />
+                    </th>
+                    <th>
+                      <span class="th-label">Data prevista</span>
+                      <input
+                        type="date"
+                        id="filter-prevista"
+                        class="filter-date-input filter-date-input--solo"
+                        title="Escolha uma data no calendário para filtrar"
+                        aria-label="Filtrar por data prevista"
+                      />
+                    </th>
+                    <th>
+                      <span class="th-label">Horário</span>
+                      <input type="text" id="filter-hora" class="filter-search" placeholder="Pesquisar..." />
                     </th>
                     <th>
                       <span class="th-label">Serviço</span>
@@ -105,9 +91,6 @@
                         <option value="cancelada">Cancelada</option>
                       </select>
                     </th>
-                    <th>
-                      <span class="th-label">Data de abertura</span>
-                    </th>
                     <th class="filter-actions">
                       <span class="th-label">Ações</span>
                       <button type="button" class="btn btn-secondary btn-sm" id="filter-clear" title="Limpar filtros">Limpar</button>
@@ -117,26 +100,41 @@
                 <tbody>
                   <% if (!orders || orders.length === 0) { %>
                   <tr class="filterable-row">
-                    <td colspan="6" class="table-empty">
-                      Nenhuma ordem de serviço cadastrada ainda.
+                    <td colspan="7" class="table-empty">
+                      Nenhum agendamento cadastrado ainda.
                     </td>
                   </tr>
                   <% } else { %> <% orders.forEach(function (o) {
-                    var dataAbertura = new Date(o.created_at).toLocaleDateString('pt-BR');
-                    var aberturaIso = '';
-                    if (o.created_at) {
-                      var da = new Date(o.created_at);
-                      aberturaIso = da.getFullYear() + '-' + String(da.getMonth() + 1).padStart(2, '0') + '-' + String(da.getDate()).padStart(2, '0');
+                    var dataPrev = '';
+                    if (o.due_date) {
+                      try { dataPrev = new Date(o.due_date + 'T12:00:00').toLocaleDateString('pt-BR'); } catch (e) { dataPrev = o.due_date; }
+                    }
+                    var horaPrev = (o.due_time || '').slice(0, 5) || '—';
+                    if (!o.due_date) { dataPrev = '—'; }
+                    var previstaIso = '';
+                    if (o.due_date) {
+                      previstaIso = String(o.due_date).trim().slice(0, 10);
                     }
                   %>
-                  <tr class="filterable-row" data-id="<%= String(o.id) %>" data-cliente="<%= esc((o.customer_name || '').toLowerCase()) %>" data-servico="<%= esc((o.description || '').toLowerCase()) %>" data-status="<%= esc((o.status || '').toLowerCase()) %>" data-data="<%= esc(dataAbertura.toLowerCase()) %>" data-abertura-iso="<%= esc(aberturaIso) %>">
+                  <tr
+                    class="filterable-row"
+                    data-id="<%= String(o.id) %>"
+                    data-cliente="<%= esc((o.customer_name || '').toLowerCase()) %>"
+                    data-data="<%= esc((dataPrev !== '—' ? dataPrev : '').toLowerCase()) %>"
+                    data-hora="<%= esc(String(horaPrev).toLowerCase()) %>"
+                    data-servico="<%= esc((o.description || '').toLowerCase()) %>"
+                    data-status="<%= esc((o.status || '').toLowerCase()) %>"
+                    data-prevista-iso="<%= esc(previstaIso) %>"
+                  >
                     <td>#<%= o.id %></td>
-                    <td><%= o.customer_name %></td>
+                    <td><%= esc(o.customer_name || '') %></td>
+                    <td><%= dataPrev %></td>
+                    <td><%= horaPrev %></td>
                     <td>
                       <%=
-                        o.description.length > 40
-                          ? o.description.substring(0, 40) + '...'
-                          : o.description
+                        (o.description || '').length > 42
+                          ? esc(o.description.substring(0, 42) + '…')
+                          : esc(o.description || '')
                       %>
                     </td>
                     <td>
@@ -149,14 +147,13 @@
                       <% } else if (o.status === 'Cancelada') { %>
                       <span class="badge badge-cancelled">Cancelada</span>
                       <% } else { %>
-                      <span class="badge"><%= o.status %></span>
+                      <span class="badge"><%= esc(o.status || '') %></span>
                       <% } %>
                     </td>
-                    <td><%= dataAbertura %></td>
                     <td>
                       <div class="btn-group">
                         <a href="/ordens/<%= o.id %>" class="btn btn-secondary btn-sm">Detalhes</a>
-                        <%- include('../partials/whatsapp-link', { phone: o.customer_phone }) %>
+                        <%- include('partials/whatsapp-link', { phone: o.customer_phone }) %>
                       </div>
                     </td>
                   </tr>
@@ -167,33 +164,28 @@
           </div>
         </main>
       </div>
-
     </div>
     <script>
       (function () {
         var rows = document.querySelectorAll('.filterable-row');
         var filterId = document.getElementById('filter-id');
         var filterCliente = document.getElementById('filter-cliente');
+        var filterHora = document.getElementById('filter-hora');
         var filterServico = document.getElementById('filter-servico');
         var filterStatus = document.getElementById('filter-status');
-        var filterDe = document.getElementById('filter-de');
-        var filterAte = document.getElementById('filter-ate');
-        var filterApplyDates = document.getElementById('filter-apply-dates');
+        var filterPrevista = document.getElementById('filter-prevista');
         var filterClear = document.getElementById('filter-clear');
 
-        function matchDateRange(iso) {
-          var de = filterDe && filterDe.value || '';
-          var ate = filterAte && filterAte.value || '';
-          if (!de && !ate) return true;
-          if (!iso) return false;
-          if (de && iso < de) return false;
-          if (ate && iso > ate) return false;
-          return true;
+        function matchPrevistaDate(iso) {
+          var picked = filterPrevista && filterPrevista.value || '';
+          if (!picked) return true;
+          return iso === picked;
         }
 
         function applyFilters() {
           var id = (filterId && filterId.value || '').trim().toLowerCase();
           var cliente = (filterCliente && filterCliente.value || '').trim().toLowerCase();
+          var hora = (filterHora && filterHora.value || '').trim().toLowerCase();
           var servico = (filterServico && filterServico.value || '').trim().toLowerCase();
           var status = (filterStatus && filterStatus.value || '').trim().toLowerCase();
 
@@ -202,44 +194,37 @@
               tr.style.display = '';
               return;
             }
-            var iso = tr.dataset.aberturaIso || '';
+            var iso = tr.dataset.previstaIso || '';
             var matchId = !id || (tr.dataset.id && tr.dataset.id.indexOf(id) !== -1);
             var matchCliente = !cliente || (tr.dataset.cliente && tr.dataset.cliente.indexOf(cliente) !== -1);
+            var matchPeriodo = matchPrevistaDate(iso);
+            var matchHora = !hora || (tr.dataset.hora && tr.dataset.hora.indexOf(hora) !== -1);
             var matchServico = !servico || (tr.dataset.servico && tr.dataset.servico === servico);
             var matchStatus = !status || (tr.dataset.status && tr.dataset.status === status);
-            var matchData = matchDateRange(iso);
-            tr.style.display = (matchId && matchCliente && matchServico && matchStatus && matchData) ? '' : 'none';
+            tr.style.display =
+              matchId && matchCliente && matchPeriodo && matchHora && matchServico && matchStatus ? '' : 'none';
           });
         }
 
         function clearFilters() {
-          if (filterId) filterId.value = '';
-          if (filterCliente) filterCliente.value = '';
-          if (filterServico) filterServico.value = '';
-          if (filterStatus) filterStatus.value = '';
-          if (filterDe) filterDe.value = '';
-          if (filterAte) filterAte.value = '';
+          [filterId, filterCliente, filterHora, filterServico, filterStatus].forEach(function (el) {
+            if (el) el.value = '';
+          });
+          if (filterPrevista) filterPrevista.value = '';
           applyFilters();
         }
 
-        [filterId, filterCliente].forEach(function (el) {
+        [filterId, filterCliente, filterHora].forEach(function (el) {
           if (el) el.addEventListener('input', applyFilters);
         });
         if (filterServico) filterServico.addEventListener('change', applyFilters);
         if (filterStatus) filterStatus.addEventListener('change', applyFilters);
-        if (filterDe) filterDe.addEventListener('change', applyFilters);
-        if (filterAte) filterAte.addEventListener('change', applyFilters);
-        if (filterApplyDates) filterApplyDates.addEventListener('click', applyFilters);
-        document.querySelectorAll('.js-os-period-quick').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            if (filterDe) filterDe.value = btn.getAttribute('data-de') || '';
-            if (filterAte) filterAte.value = btn.getAttribute('data-ate') || '';
-            applyFilters();
-          });
-        });
+        if (filterPrevista) {
+          filterPrevista.addEventListener('change', applyFilters);
+          filterPrevista.addEventListener('input', applyFilters);
+        }
         if (filterClear) filterClear.addEventListener('click', clearFilters);
       })();
     </script>
   </body>
 </html>
-

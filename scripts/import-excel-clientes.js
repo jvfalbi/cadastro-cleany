@@ -1,8 +1,13 @@
 /**
- * Importa clientes do Excel (.xlsx) do zero: apaga todos os clientes e O.S., depois insere os da planilha.
+ * Importa clientes do Excel (.xlsx) do zero: apaga todos os clientes e (por padrão) todas as O.S., depois insere os da planilha.
  * Usa a coluna "codigo" (ou "código") da planilha e mantém a ordem das linhas.
  *
  * Uso: node scripts/import-excel-clientes.js "C:\caminho\cadastroclientesatualizado.csv.xlsx"
+ *
+ * Opções:
+ *   --preview       só mostra o que seria importado (não altera o banco)
+ *   --manter-os     não apaga service_orders; apaga e reinsere só clientes. O.S. antigas ficam no histórico
+ *                   (cliente pode aparecer como removido se o id não existir mais).
  */
 
 const path = require('path');
@@ -127,20 +132,53 @@ async function main() {
     process.exit(0);
   }
 
+  const manterOs = process.argv.includes('--manter-os');
   const sqlite3 = require('sqlite3').verbose();
   const db = new sqlite3.Database(DB_PATH);
 
   console.log('Linhas na planilha:', rows.length, '| a importar:', toInsert.length);
+  if (manterOs) {
+    console.log('Modo --manter-os: ordens de serviço existentes não serão apagadas.');
+  }
+
+  function insertCustomers() {
+    const stmt = db.prepare(
+      'INSERT INTO customers (ordem_planilha, codigo, name, nome_fantasia, phone, email, address, document, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    let done = 0;
+    const total = toInsert.length;
+    if (total === 0) {
+      stmt.finalize(() => {
+        db.close();
+        console.log('Nenhuma linha para importar.');
+      });
+      return;
+    }
+    toInsert.forEach((r) => {
+      stmt.run(r.ordem_planilha, r.codigo, r.name, r.nome_fantasia || null, r.phone, r.email, r.address, r.document, r.notes, (err) => {
+        if (err) console.error('Erro:', r.name, err.message);
+        done++;
+        if (done === total) {
+          stmt.finalize(() => {
+            db.close();
+            console.log('Concluído. Inseridos:', total, 'clientes.');
+          });
+        }
+      });
+    });
+  }
 
   db.serialize(() => {
-    db.run('DELETE FROM service_orders', (err) => {
-      if (err) {
-        console.error('Erro ao apagar O.S.:', err.message);
-        db.close();
-        process.exit(1);
-      }
-      console.log('O.S. apagadas.');
-    });
+    if (!manterOs) {
+      db.run('DELETE FROM service_orders', (err) => {
+        if (err) {
+          console.error('Erro ao apagar O.S.:', err.message);
+          db.close();
+          process.exit(1);
+        }
+        console.log('O.S. apagadas.');
+      });
+    }
     db.run('DELETE FROM customers', (err) => {
       if (err) {
         console.error('Erro ao apagar clientes:', err.message);
@@ -148,35 +186,7 @@ async function main() {
         process.exit(1);
       }
       console.log('Clientes apagados.');
-    });
-  });
-
-  db.run('DELETE FROM service_orders', function () {
-    db.run('DELETE FROM customers', function () {
-      const stmt = db.prepare(
-        'INSERT INTO customers (ordem_planilha, codigo, name, nome_fantasia, phone, email, address, document, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      );
-      let done = 0;
-      const total = toInsert.length;
-      if (total === 0) {
-        stmt.finalize(() => {
-          db.close();
-          console.log('Nenhuma linha para importar.');
-        });
-        return;
-      }
-      toInsert.forEach((r) => {
-        stmt.run(r.ordem_planilha, r.codigo, r.name, r.nome_fantasia || null, r.phone, r.email, r.address, r.document, r.notes, (err) => {
-          if (err) console.error('Erro:', r.name, err.message);
-          done++;
-          if (done === total) {
-            stmt.finalize(() => {
-              db.close();
-              console.log('Concluído. Inseridos:', total, 'clientes.');
-            });
-          }
-        });
-      });
+      insertCustomers();
     });
   });
 }
