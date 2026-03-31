@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 // Caminho absoluto à raiz do projeto (onde fica package.json e .env). PM2 nem sempre usa cwd correto.
 const ENV_PATH = path.resolve(__dirname, '..', '.env');
@@ -55,6 +56,9 @@ function marcarAtrasadasComoConcluidas(cb) {
 }
 const PORT = process.env.PORT || 3000;
 
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const STYLES_PATH = path.join(PUBLIC_DIR, 'css', 'styles.css');
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
 
@@ -69,9 +73,26 @@ app.use(session({
   saveUninitialized: false,
   cookie: { maxAge: 24 * 60 * 60 * 1000 },
 }));
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(
+  express.static(PUBLIC_DIR, {
+    setHeaders(res, filePath) {
+      if (/\.(css|js|html|json)$/i.test(filePath)) {
+        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      }
+    },
+  })
+);
 
 app.use((req, res, next) => {
+  if (process.env.ASSET_V && String(process.env.ASSET_V).trim()) {
+    res.locals.assetV = String(process.env.ASSET_V).trim();
+  } else {
+    try {
+      res.locals.assetV = String(Math.floor(fs.statSync(STYLES_PATH).mtimeMs / 1000));
+    } catch {
+      res.locals.assetV = '1';
+    }
+  }
   res.locals.whatsappUrl = function (phone) {
     if (!phone) return '';
     const d = String(phone).replace(/\D/g, '');
