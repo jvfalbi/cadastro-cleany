@@ -20,7 +20,7 @@ Use este arquivo como roteiro único. O app é **Node + Express + SQLite**; prec
   - **`SESSION_SECRET`** com **pelo menos 16 caracteres**
 - O servidor carrega o `.env` por **caminho fixo**; não depende da “pasta atual” do PM2.
 - Nos logs (`pm2 logs`) aparece **`[Cleany] .env OK:`** ou mensagem de erro se o arquivo sumir.
-- No **PC, para desenvolvimento**, sem `.env`: login padrão **`cleany-dev`** / **`cleany-dev`**. Para usar outro usuário/senha localmente, copie `.env.example` para `.env` e edite.
+- No **PC, para desenvolvimento**, sem `LOGIN_*` no `.env`: o login padrão está em **`src/server.js`** (`DEV_LOGIN_USER` / `DEV_LOGIN_PASSWORD`). Para outro usuário local, defina `LOGIN_USER` e `LOGIN_PASSWORD` no `.env`.
 
 ### Atualizar o `server.js` do PC → EC2 (PowerShell)
 

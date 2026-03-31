@@ -1258,9 +1258,191 @@ textarea {
 }
 
 /*
- * Menu gaveta no celular: ativado por JS em <head> (classe html.layout-compact).
- * Cobre iPhone em “modo desktop”, tablets e larguras até 992px sem depender só de @media.
+ * Menu gaveta no celular:
+ * 1) @media (max-width: 1024px) — funciona sem JS (CSP bloqueando inline, rede, etc.).
+ * 2) html.layout-compact — JS em /js/layout-compact.js para viewport largo + toque (Safari “modo computador”).
  */
+@media (max-width: 1024px) {
+  .layout.layout--nav-drawer {
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
+
+  .app-shell {
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
+
+  .layout.layout--nav-drawer .mobile-topbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: max(0.45rem, env(safe-area-inset-top, 0px)) max(1rem, env(safe-area-inset-right, 0px)) 0.45rem
+      max(1rem, env(safe-area-inset-left, 0px));
+    background: #e2e5e9;
+    border-bottom: 1px solid var(--border-soft);
+    position: sticky;
+    top: 0;
+    z-index: 1002;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .layout.layout--nav-drawer .mobile-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+  }
+
+  .layout.layout--nav-drawer .mobile-topbar-logo-img {
+    height: 40px;
+    width: auto;
+    max-width: 120px;
+    object-fit: contain;
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .layout.layout--nav-drawer .mobile-topbar-title {
+    font-weight: 700;
+    color: var(--primary-blue);
+    letter-spacing: 0.02em;
+    font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .layout.layout--nav-drawer .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: -6px;
+    margin-right: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-main);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    flex-shrink: 0;
+  }
+
+  .layout.layout--nav-drawer .sidebar-toggle:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  .layout.layout--nav-drawer .sidebar-toggle-icon {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: currentColor;
+    box-shadow: 0 7px 0 currentColor, 0 -7px 0 currentColor;
+    border-radius: 1px;
+  }
+
+  .layout.layout--nav-drawer .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1001;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .layout.layout--nav-drawer .sidebar-overlay.sidebar-overlay--visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .layout.layout--nav-drawer .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: min(300px, calc(100vw - 2.5rem));
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    height: 100dvh;
+    max-height: 100dvh;
+    z-index: 1003;
+    transform: translate3d(-100%, 0, 0);
+    transition: transform 0.28s ease;
+    will-change: transform;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: max(1rem, env(safe-area-inset-top, 0px)) 1rem 1.5rem max(1rem, env(safe-area-inset-left, 0px));
+    margin: 0;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .layout.layout--nav-drawer .sidebar.sidebar--open {
+    transform: translate3d(0, 0, 0);
+  }
+
+  .layout.layout--nav-drawer .sidebar-header-row {
+    margin-bottom: 0.75rem;
+  }
+
+  .layout.layout--nav-drawer .sidebar-close-btn {
+    display: flex;
+  }
+
+  .layout.layout--nav-drawer .sidebar-logo img {
+    height: 64px;
+    max-width: 100%;
+  }
+
+  .layout.layout--nav-drawer .sidebar-nav {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+
+  .layout.layout--nav-drawer .sidebar-link {
+    min-height: 44px;
+    padding: 0.65rem 0.85rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .layout.layout--nav-drawer .main-content {
+    width: 100%;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .layout.layout--nav-drawer .main-content .container {
+    margin-top: 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+    padding-bottom: max(2rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .main-content input:not([type='checkbox']):not([type='radio']):not([type='submit']):not([type='button']):not([type='hidden']),
+  .main-content select,
+  .main-content textarea {
+    font-size: 16px;
+  }
+}
+
 html.layout-compact .layout.layout--nav-drawer {
   flex-direction: column;
   min-height: 100vh;

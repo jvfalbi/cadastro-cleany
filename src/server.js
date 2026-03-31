@@ -16,11 +16,16 @@ const db = require('./db');
 const app = express();
 
 const isProd = process.env.NODE_ENV === 'production';
+/** Login padrão só em desenvolvimento (localhost), quando o .env não define os dois. */
+const DEV_LOGIN_USER = 'joaofalbi';
+const DEV_LOGIN_PASSWORD = 'Butt1005!';
 /** URL pública configurada (sem barra final), ex.: https://app.exemplo.com.br */
 const BASE_URL_CONFIGURED = (process.env.BASE_URL || '').trim().replace(/\/+$/, '');
+/* Em desenvolvimento nunca cookie Secure: senão o navegador ignora em http://localhost mesmo com BASE_URL=https no .env */
 const SESSION_COOKIE_SECURE =
-  process.env.SESSION_COOKIE_SECURE === '1' ||
-  BASE_URL_CONFIGURED.toLowerCase().startsWith('https://');
+  isProd &&
+  (process.env.SESSION_COOKIE_SECURE === '1' ||
+    BASE_URL_CONFIGURED.toLowerCase().startsWith('https://'));
 
 if (isProd) {
   app.set('trust proxy', 1);
@@ -39,10 +44,26 @@ if (isProd) {
     process.exit(1);
   }
 } else {
-  if (!LOGIN_USER) LOGIN_USER = 'cleany-dev';
-  if (!LOGIN_PASSWORD) LOGIN_PASSWORD = 'cleany-dev';
-  if (!process.env.LOGIN_USER || !process.env.LOGIN_PASSWORD) {
-    console.warn('[Cleany] Dev: sem LOGIN_* no .env — login cleany-dev / cleany-dev (crie .env para personalizar).');
+  if (process.env.LOCAL_FORCE_DEV_LOGIN === '1') {
+    LOGIN_USER = DEV_LOGIN_USER;
+    LOGIN_PASSWORD = DEV_LOGIN_PASSWORD;
+    console.warn('[Cleany] Dev: LOCAL_FORCE_DEV_LOGIN=1 — login fixo', DEV_LOGIN_USER, '/ (senha padrão dev)');
+  } else {
+    if (!LOGIN_USER) LOGIN_USER = DEV_LOGIN_USER;
+    if (!LOGIN_PASSWORD) LOGIN_PASSWORD = DEV_LOGIN_PASSWORD;
+    if (!process.env.LOGIN_USER || !process.env.LOGIN_PASSWORD) {
+      console.warn(
+        '[Cleany] Dev: LOGIN_USER ou LOGIN_PASSWORD vazio no .env — usando',
+        DEV_LOGIN_USER,
+        '/ (senha padrão dev no código)'
+      );
+    } else {
+      console.warn(
+        '[Cleany] Dev: login vem do .env (usuário:',
+        JSON.stringify(LOGIN_USER) + ').',
+        'Se a senha falhar, use esse usuário/senha do .env ou coloque LOCAL_FORCE_DEV_LOGIN=1 para o login padrão de desenvolvimento'
+      );
+    }
   }
 }
 
