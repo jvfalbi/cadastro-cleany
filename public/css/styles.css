@@ -1220,16 +1220,16 @@ textarea {
 
 @media (max-width: 768px) {
   /*
-   * Gaveta só quando existe .mobile-topbar no HTML. Sem ela (deploy antigo),
-   * não esconder a sidebar fora da tela — senão some menu e logo.
+   * Gaveta no celular: use .layout.layout--nav-drawer no HTML (todas as páginas com navbar).
+   * Evita :has(), que em alguns Safari/iOS não aplica e cai no menu “empilhado” sem drawer.
    */
-  .layout {
+  .layout.layout--nav-drawer {
     flex-direction: column;
     min-height: 100vh;
     min-height: 100dvh;
   }
 
-  .layout:has(.mobile-topbar) .mobile-topbar {
+  .layout.layout--nav-drawer .mobile-topbar {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -1243,7 +1243,7 @@ textarea {
     -webkit-tap-highlight-color: transparent;
   }
 
-  .layout:has(.mobile-topbar) .mobile-topbar-brand {
+  .layout.layout--nav-drawer .mobile-topbar-brand {
     display: flex;
     align-items: center;
     gap: 0.55rem;
@@ -1252,7 +1252,7 @@ textarea {
     min-width: 0;
   }
 
-  .layout:has(.mobile-topbar) .mobile-topbar-logo-img {
+  .layout.layout--nav-drawer .mobile-topbar-logo-img {
     height: 40px;
     width: auto;
     max-width: 120px;
@@ -1261,7 +1261,7 @@ textarea {
     flex-shrink: 0;
   }
 
-  .layout:has(.mobile-topbar) .mobile-topbar-title {
+  .layout.layout--nav-drawer .mobile-topbar-title {
     font-weight: 700;
     color: var(--primary-blue);
     letter-spacing: 0.02em;
@@ -1271,7 +1271,7 @@ textarea {
     text-overflow: ellipsis;
   }
 
-  .layout:has(.mobile-topbar) .sidebar-toggle {
+  .layout.layout--nav-drawer .sidebar-toggle {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1290,11 +1290,11 @@ textarea {
     flex-shrink: 0;
   }
 
-  .layout:has(.mobile-topbar) .sidebar-toggle:hover {
+  .layout.layout--nav-drawer .sidebar-toggle:hover {
     background: rgba(0, 0, 0, 0.06);
   }
 
-  .layout:has(.mobile-topbar) .sidebar-toggle-icon {
+  .layout.layout--nav-drawer .sidebar-toggle-icon {
     display: block;
     width: 22px;
     height: 2px;
@@ -1303,7 +1303,7 @@ textarea {
     border-radius: 1px;
   }
 
-  .layout:has(.mobile-topbar) .sidebar-overlay {
+  .layout.layout--nav-drawer .sidebar-overlay {
     display: block;
     position: fixed;
     inset: 0;
@@ -1314,12 +1314,12 @@ textarea {
     transition: opacity 0.25s ease;
   }
 
-  .layout:has(.mobile-topbar) .sidebar-overlay.sidebar-overlay--visible {
+  .layout.layout--nav-drawer .sidebar-overlay.sidebar-overlay--visible {
     opacity: 1;
     pointer-events: auto;
   }
 
-  .layout:has(.mobile-topbar) .sidebar {
+  .layout.layout--nav-drawer .sidebar {
     position: fixed;
     left: 0;
     top: 0;
@@ -1341,59 +1341,30 @@ textarea {
     -webkit-overflow-scrolling: touch;
   }
 
-  .layout:has(.mobile-topbar) .sidebar.sidebar--open {
+  .layout.layout--nav-drawer .sidebar.sidebar--open {
     transform: translateX(0);
   }
 
-  .layout:has(.mobile-topbar) .sidebar-logo {
+  .layout.layout--nav-drawer .sidebar-logo {
     margin-bottom: 1rem;
   }
 
-  .layout:has(.mobile-topbar) .sidebar-logo img {
+  .layout.layout--nav-drawer .sidebar-logo img {
     height: 72px;
   }
 
-  .layout:has(.mobile-topbar) .sidebar-nav {
+  .layout.layout--nav-drawer .sidebar-nav {
     flex-direction: column;
     flex-wrap: nowrap;
     justify-content: flex-start;
   }
 
-  .layout:has(.mobile-topbar) .sidebar-link {
+  .layout.layout--nav-drawer .sidebar-link {
     min-height: 44px;
     padding: 0.65rem 0.85rem;
   }
 
-  /* HTML sem .mobile-topbar: menu e logo permanecem visíveis no fluxo */
-  .layout:not(:has(.mobile-topbar)) .sidebar {
-    width: 100%;
-    min-height: 0;
-    position: relative;
-    left: auto;
-    top: auto;
-    transform: none;
-    height: auto;
-    max-height: none;
-    flex-direction: column;
-    padding: 1rem 1.1rem 1.25rem;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-  }
-
-  .layout:not(:has(.mobile-topbar)) .sidebar-logo img {
-    height: 72px;
-  }
-
-  .layout:not(:has(.mobile-topbar)) .sidebar-nav {
-    flex-direction: column;
-    flex-wrap: nowrap;
-  }
-
-  .layout:not(:has(.mobile-topbar)) .sidebar-link {
-    min-height: 44px;
-    padding: 0.6rem 0.85rem;
-  }
-
-  .main-content {
+  .layout.layout--nav-drawer .main-content {
     width: 100%;
     min-width: 0;
     flex: 1;
