@@ -1219,11 +1219,21 @@ textarea {
 }
 
 @media (max-width: 768px) {
-  .mobile-topbar {
+  /*
+   * Gaveta só quando existe .mobile-topbar no HTML. Sem ela (deploy antigo),
+   * não esconder a sidebar fora da tela — senão some menu e logo.
+   */
+  .layout {
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .layout:has(.mobile-topbar) .mobile-topbar {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.55rem 1rem;
+    gap: 0.5rem;
+    padding: 0.45rem 1rem;
     background: #e2e5e9;
     border-bottom: 1px solid var(--border-soft);
     position: sticky;
@@ -1233,14 +1243,35 @@ textarea {
     -webkit-tap-highlight-color: transparent;
   }
 
-  .mobile-topbar-title {
+  .layout:has(.mobile-topbar) .mobile-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+  }
+
+  .layout:has(.mobile-topbar) .mobile-topbar-logo-img {
+    height: 40px;
+    width: auto;
+    max-width: 120px;
+    object-fit: contain;
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .layout:has(.mobile-topbar) .mobile-topbar-title {
     font-weight: 700;
     color: var(--primary-blue);
     letter-spacing: 0.02em;
     font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .sidebar-toggle {
+  .layout:has(.mobile-topbar) .sidebar-toggle {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1256,13 +1287,14 @@ textarea {
     color: var(--text-main);
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+    flex-shrink: 0;
   }
 
-  .sidebar-toggle:hover {
+  .layout:has(.mobile-topbar) .sidebar-toggle:hover {
     background: rgba(0, 0, 0, 0.06);
   }
 
-  .sidebar-toggle-icon {
+  .layout:has(.mobile-topbar) .sidebar-toggle-icon {
     display: block;
     width: 22px;
     height: 2px;
@@ -1271,7 +1303,7 @@ textarea {
     border-radius: 1px;
   }
 
-  .sidebar-overlay {
+  .layout:has(.mobile-topbar) .sidebar-overlay {
     display: block;
     position: fixed;
     inset: 0;
@@ -1282,18 +1314,12 @@ textarea {
     transition: opacity 0.25s ease;
   }
 
-  .sidebar-overlay.sidebar-overlay--visible {
+  .layout:has(.mobile-topbar) .sidebar-overlay.sidebar-overlay--visible {
     opacity: 1;
     pointer-events: auto;
   }
 
-  .layout {
-    flex-direction: column;
-    min-height: 100vh;
-    min-height: 100dvh;
-  }
-
-  .sidebar {
+  .layout:has(.mobile-topbar) .sidebar {
     position: fixed;
     left: 0;
     top: 0;
@@ -1315,27 +1341,56 @@ textarea {
     -webkit-overflow-scrolling: touch;
   }
 
-  .sidebar.sidebar--open {
+  .layout:has(.mobile-topbar) .sidebar.sidebar--open {
     transform: translateX(0);
   }
 
-  .sidebar-logo {
+  .layout:has(.mobile-topbar) .sidebar-logo {
     margin-bottom: 1rem;
   }
 
-  .sidebar-logo img {
+  .layout:has(.mobile-topbar) .sidebar-logo img {
     height: 72px;
   }
 
-  .sidebar-nav {
+  .layout:has(.mobile-topbar) .sidebar-nav {
     flex-direction: column;
     flex-wrap: nowrap;
     justify-content: flex-start;
   }
 
-  .sidebar-link {
+  .layout:has(.mobile-topbar) .sidebar-link {
     min-height: 44px;
     padding: 0.65rem 0.85rem;
+  }
+
+  /* HTML sem .mobile-topbar: menu e logo permanecem visíveis no fluxo */
+  .layout:not(:has(.mobile-topbar)) .sidebar {
+    width: 100%;
+    min-height: 0;
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    height: auto;
+    max-height: none;
+    flex-direction: column;
+    padding: 1rem 1.1rem 1.25rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  }
+
+  .layout:not(:has(.mobile-topbar)) .sidebar-logo img {
+    height: 72px;
+  }
+
+  .layout:not(:has(.mobile-topbar)) .sidebar-nav {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .layout:not(:has(.mobile-topbar)) .sidebar-link {
+    min-height: 44px;
+    padding: 0.6rem 0.85rem;
   }
 
   .main-content {
