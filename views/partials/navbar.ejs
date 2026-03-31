@@ -9,9 +9,14 @@
 </header>
 <div class="sidebar-overlay no-print" id="sidebar-overlay" aria-hidden="true"></div>
 <aside class="sidebar" id="sidebar-nav-drawer">
-  <a href="/" class="sidebar-logo" title="Página inicial">
-    <img src="/img/logocleany.png" alt="Cleany - Trituradores de Resíduos" />
-  </a>
+  <div class="sidebar-header-row">
+    <a href="/" class="sidebar-logo" title="Página inicial">
+      <img src="/img/logocleany.png" alt="Cleany - Trituradores de Resíduos" />
+    </a>
+    <button type="button" class="sidebar-close-btn no-print" id="sidebar-close" aria-label="Fechar menu">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
   <nav class="sidebar-nav" id="sidebar-nav">
     <a href="/" class="sidebar-link">
       <span class="sidebar-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
@@ -158,15 +163,16 @@
 
 (function() {
   var toggle = document.getElementById('sidebar-toggle');
+  var closeBtn = document.getElementById('sidebar-close');
   var sidebar = document.getElementById('sidebar-nav-drawer');
   var overlay = document.getElementById('sidebar-overlay');
-  if (!toggle || !sidebar || !overlay) return;
+  if (!sidebar || !overlay) return;
 
   function closeNav() {
     sidebar.classList.remove('sidebar--open');
     overlay.classList.remove('sidebar-overlay--visible');
     overlay.setAttribute('aria-hidden', 'true');
-    toggle.setAttribute('aria-expanded', 'false');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
     document.body.style.overflow = '';
   }
 
@@ -174,14 +180,17 @@
     sidebar.classList.add('sidebar--open');
     overlay.classList.add('sidebar-overlay--visible');
     overlay.setAttribute('aria-hidden', 'false');
-    toggle.setAttribute('aria-expanded', 'true');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
     document.body.style.overflow = 'hidden';
   }
 
-  toggle.addEventListener('click', function() {
-    if (sidebar.classList.contains('sidebar--open')) closeNav();
-    else openNav();
-  });
+  if (toggle) {
+    toggle.addEventListener('click', function() {
+      if (sidebar.classList.contains('sidebar--open')) closeNav();
+      else openNav();
+    });
+  }
+  if (closeBtn) closeBtn.addEventListener('click', closeNav);
   overlay.addEventListener('click', closeNav);
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeNav();

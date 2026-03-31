@@ -50,11 +50,50 @@ a {
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.06);
 }
 
+.sidebar-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.4rem;
+}
+
+.sidebar-header-row .sidebar-logo {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-close-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  flex-shrink: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text-main);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.sidebar-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-close-btn svg {
+  display: block;
+}
+
 .sidebar-logo {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  margin-bottom: 1.4rem;
+  margin-bottom: 0;
   text-decoration: none;
   color: inherit;
 }
@@ -1218,10 +1257,10 @@ textarea {
   max-width: 100%;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
   /*
-   * Gaveta no celular: use .layout.layout--nav-drawer no HTML (todas as páginas com navbar).
-   * Evita :has(), que em alguns Safari/iOS não aplica e cai no menu “empilhado” sem drawer.
+   * Gaveta: até 1200px (celular, tablet, iPhone em “site para computador”).
+   * use .layout.layout--nav-drawer nas páginas com navbar.
    */
   .layout.layout--nav-drawer {
     flex-direction: column;
@@ -1345,8 +1384,12 @@ textarea {
     transform: translateX(0);
   }
 
-  .layout.layout--nav-drawer .sidebar-logo {
-    margin-bottom: 1rem;
+  .layout.layout--nav-drawer .sidebar-header-row {
+    margin-bottom: 0.75rem;
+  }
+
+  .layout.layout--nav-drawer .sidebar-close-btn {
+    display: flex;
   }
 
   .layout.layout--nav-drawer .sidebar-logo img {
@@ -1375,7 +1418,9 @@ textarea {
   .main-content textarea {
     font-size: 16px;
   }
+}
 
+@media (max-width: 768px) {
   .page-header {
     flex-direction: column;
     align-items: flex-start;
