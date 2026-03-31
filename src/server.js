@@ -15,7 +15,11 @@ const db = require('./db');
 
 const app = express();
 
-const isProd = process.env.NODE_ENV === 'production';
+/** Espaço/BOM em NODE_ENV quebrava === 'production' e o servidor caía no modo dev na EC2. */
+const rawNodeEnv = String(process.env.NODE_ENV || '')
+  .replace(/^\uFEFF/, '')
+  .trim();
+const isProd = rawNodeEnv.toLowerCase() === 'production';
 /** Login padrão só em desenvolvimento (localhost), quando o .env não define os dois. */
 const DEV_LOGIN_USER = 'joaofalbi';
 const DEV_LOGIN_PASSWORD = 'Butt1005!';
@@ -778,6 +782,13 @@ app.get('/financeiro', (req, res) => {
 app.listen(PORT, () => {
   const mode = isProd ? 'produção' : 'desenvolvimento';
   const publicHint = BASE_URL_CONFIGURED || `http://127.0.0.1:${PORT} (defina BASE_URL no .env com o domínio público)`;
-  console.log(`[Cleany] ${mode} | URL pública: ${publicHint} | login: ${LOGIN_USER}`);
+  console.log(
+    `[Cleany] NODE_ENV="${rawNodeEnv || '(vazio)'}" → ${mode} | URL: ${publicHint} | usuário login: ${LOGIN_USER}`
+  );
+  if (!isProd && process.env.PM2_HOME) {
+    console.warn(
+      '[Cleany] PM2 sem NODE_ENV=production — login/cookies usam modo desenvolvimento. Corrija: `pm2 start ecosystem.config.cjs` ou acrescente NODE_ENV=production no .env da EC2.'
+    );
+  }
 });
 
