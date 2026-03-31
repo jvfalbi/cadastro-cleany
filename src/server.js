@@ -247,26 +247,34 @@ app.post('/clientes', (req, res) => {
     });
   };
   checkCodigo((err, isDuplicate) => {
-    if (err) return res.status(500).send('Erro ao salvar cliente.');
+    if (err) {
+      console.error('[Cleany] POST /clientes (checagem código):', err.message);
+      return res.status(500).send('Erro ao salvar cliente.');
+    }
     if (isDuplicate) {
       return res.render('customers/form', {
         customer: { codigo, name, nome_fantasia, phone, email, address, document, notes },
         error: 'Este código já está em uso por outro cliente. Escolha outro ou deixe em branco.',
       });
     }
-    db.get('SELECT COALESCE(MAX(ordem_planilha), 0) + 1 AS next FROM customers', [], (err, row) => {
-      if (err) return res.status(500).send('Erro ao salvar cliente.');
+    db.get('SELECT COALESCE(MAX(ordem_planilha), 0) + 1 AS next FROM customers', [], (errOrdem, row) => {
+      if (errOrdem) {
+        console.error('[Cleany] POST /clientes (ordem_planilha):', errOrdem.message);
+        return res.status(500).send('Erro ao salvar cliente.');
+      }
       const ordem = row ? row.next : 1;
-      const stmt = db.prepare(
-        'INSERT INTO customers (name, phone, email, address, document, notes, ordem_planilha, codigo, nome_fantasia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      );
-      stmt.run(name, phoneTrim, email, address, documentTrim, notes, ordem, codigo, nome_fantasia, (err2) => {
-        if (err2) {
-          return res.status(500).send('Erro ao salvar cliente.');
+      /* db.run: não usar prepare+finalize logo após run — em produção o finalize podia rodar antes do INSERT terminar. */
+      db.run(
+        'INSERT INTO customers (name, phone, email, address, document, notes, ordem_planilha, codigo, nome_fantasia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [name, phoneTrim, email, address, documentTrim, notes, ordem, codigo, nome_fantasia],
+        (errIns) => {
+          if (errIns) {
+            console.error('[Cleany] POST /clientes (INSERT):', errIns.message);
+            return res.status(500).send('Erro ao salvar cliente.');
+          }
+          res.redirect('/clientes');
         }
-        res.redirect('/clientes');
-      });
-      stmt.finalize();
+      );
     });
   });
 });
