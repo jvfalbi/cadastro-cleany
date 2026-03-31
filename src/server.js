@@ -30,15 +30,24 @@ const SESSION_COOKIE_SECURE =
 if (isProd) {
   app.set('trust proxy', 1);
 }
-let LOGIN_USER = (process.env.LOGIN_USER || '').trim();
-let LOGIN_PASSWORD = (process.env.LOGIN_PASSWORD || '').trim();
+
+/** Remove BOM (editores Windows), \r e espaços — evita “senha incorreta” com .env certo. */
+function cleanEnvCredential(value) {
+  return String(value || '')
+    .replace(/^\uFEFF/, '')
+    .replace(/\r/g, '')
+    .trim();
+}
+
+let LOGIN_USER = cleanEnvCredential(process.env.LOGIN_USER);
+let LOGIN_PASSWORD = cleanEnvCredential(process.env.LOGIN_PASSWORD);
 
 if (isProd) {
   if (!LOGIN_USER || !LOGIN_PASSWORD) {
     console.error('[Cleany] Produção: defina LOGIN_USER e LOGIN_PASSWORD no .env em', ENV_PATH);
     process.exit(1);
   }
-  const sec = (process.env.SESSION_SECRET || '').trim();
+  const sec = cleanEnvCredential(process.env.SESSION_SECRET);
   if (sec.length < 16) {
     console.error('[Cleany] Produção: SESSION_SECRET no .env com pelo menos 16 caracteres.');
     process.exit(1);
@@ -158,11 +167,14 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  const username = String((req.body && req.body.username) || '').trim();
-  const password = String((req.body && req.body.password) || '').trim();
+  const username = cleanEnvCredential((req.body && req.body.username) || '');
+  const password = cleanEnvCredential((req.body && req.body.password) || '');
   if (username === LOGIN_USER && password === LOGIN_PASSWORD) {
     req.session.user = username;
     return res.redirect('/');
+  }
+  if (isProd) {
+    console.warn('[Cleany] Login recusado (verifique LOGIN_USER / LOGIN_PASSWORD no .env na EC2). Usuário tentado:', JSON.stringify(username));
   }
   res.render('login', { error: 'Usuário ou senha incorretos.' });
 });
