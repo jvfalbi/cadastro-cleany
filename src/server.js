@@ -16,6 +16,15 @@ const db = require('./db');
 const app = express();
 
 const isProd = process.env.NODE_ENV === 'production';
+/** URL pública configurada (sem barra final), ex.: https://app.exemplo.com.br */
+const BASE_URL_CONFIGURED = (process.env.BASE_URL || '').trim().replace(/\/+$/, '');
+const SESSION_COOKIE_SECURE =
+  process.env.SESSION_COOKIE_SECURE === '1' ||
+  BASE_URL_CONFIGURED.toLowerCase().startsWith('https://');
+
+if (isProd) {
+  app.set('trust proxy', 1);
+}
 let LOGIN_USER = (process.env.LOGIN_USER || '').trim();
 let LOGIN_PASSWORD = (process.env.LOGIN_PASSWORD || '').trim();
 
@@ -71,7 +80,11 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'cleany-session-secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 },
+  cookie: {
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: 'lax',
+    secure: SESSION_COOKIE_SECURE,
+  },
 }));
 app.use(
   express.static(PUBLIC_DIR, {
@@ -84,6 +97,20 @@ app.use(
 );
 
 app.use((req, res, next) => {
+  if (BASE_URL_CONFIGURED) {
+    res.locals.baseUrl = BASE_URL_CONFIGURED;
+  } else {
+    const xfProto = req.get('x-forwarded-proto');
+    const proto = (xfProto && xfProto.split(',')[0].trim()) || req.protocol || 'http';
+    const host = req.get('x-forwarded-host') || req.get('host') || '';
+    res.locals.baseUrl = (host ? `${proto}://${host}` : '').replace(/\/+$/, '') || `http://localhost:${PORT}`;
+  }
+  res.locals.absUrl = function absUrl(p) {
+    let pathPart = String(p == null || p === '' ? '/' : p);
+    if (!pathPart.startsWith('/')) pathPart = '/' + pathPart;
+    return res.locals.baseUrl + pathPart;
+  };
+
   if (process.env.ASSET_V && String(process.env.ASSET_V).trim()) {
     res.locals.assetV = String(process.env.ASSET_V).trim();
   } else {
@@ -700,6 +727,7 @@ app.get('/financeiro', (req, res) => {
 
 app.listen(PORT, () => {
   const mode = isProd ? 'produção' : 'desenvolvimento';
-  console.log(`[Cleany] ${mode} | http://localhost:${PORT} | login: ${LOGIN_USER}`);
+  const publicHint = BASE_URL_CONFIGURED || `http://127.0.0.1:${PORT} (defina BASE_URL no .env com o domínio público)`;
+  console.log(`[Cleany] ${mode} | URL pública: ${publicHint} | login: ${LOGIN_USER}`);
 });
 

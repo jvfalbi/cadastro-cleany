@@ -3,7 +3,7 @@
     <span class="sidebar-toggle-icon" aria-hidden="true"></span>
   </button>
   <a href="/" class="mobile-topbar-brand" title="Página inicial">
-    <img src="/img/logocleany.png?v=<%= typeof assetV !== 'undefined' ? assetV : '1' %>" alt="" class="mobile-topbar-logo-img" width="40" height="40" decoding="async" />
+    <img src="<%= typeof absUrl === 'function' ? absUrl('/img/logocleany.png') : '/img/logocleany.png' %>?v=<%= typeof assetV !== 'undefined' ? assetV : '1' %>" alt="" class="mobile-topbar-logo-img" width="40" height="40" decoding="async" />
     <span class="mobile-topbar-title">Cleany</span>
   </a>
 </header>
@@ -11,7 +11,7 @@
 <aside class="sidebar" id="sidebar-nav-drawer">
   <div class="sidebar-header-row">
     <a href="/" class="sidebar-logo" title="Página inicial">
-      <img src="/img/logocleany.png?v=<%= typeof assetV !== 'undefined' ? assetV : '1' %>" alt="Cleany - Trituradores de Resíduos" />
+      <img src="<%= typeof absUrl === 'function' ? absUrl('/img/logocleany.png') : '/img/logocleany.png' %>?v=<%= typeof assetV !== 'undefined' ? assetV : '1' %>" alt="Cleany - Trituradores de Resíduos" />
     </a>
     <button type="button" class="sidebar-close-btn no-print" id="sidebar-close" aria-label="Fechar menu">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -200,6 +200,10 @@
     link.addEventListener('click', function() {
       closeNav();
     });
+  });
+
+  window.addEventListener('resize', function() {
+    if (!document.documentElement.classList.contains('layout-compact')) closeNav();
   });
 })();
 </script>

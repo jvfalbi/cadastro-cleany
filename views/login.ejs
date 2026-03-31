@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Login - Cleany</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <%- include('partials/head-viewport') %>
     <%- include('partials/head-styles') %>
     <style>
       .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: var(--background-soft); }
@@ -20,7 +20,7 @@
     <div class="login-page">
       <div class="login-box">
         <div class="login-logo">
-          <img src="/img/logocleany.png?v=<%= typeof assetV !== 'undefined' ? assetV : '1' %>" alt="Cleany" />
+          <img src="<%= typeof absUrl === 'function' ? absUrl('/img/logocleany.png') : '/img/logocleany.png' %>?v=<%= typeof assetV !== 'undefined' ? assetV : '1' %>" alt="Cleany" />
         </div>
         <h1 class="login-title" style="text-align: center;">Entrar</h1>
 

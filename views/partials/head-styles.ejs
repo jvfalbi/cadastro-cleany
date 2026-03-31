@@ -1,1 +1,17 @@
-<link rel="stylesheet" href="/css/styles.css?v=<%= typeof assetV !== 'undefined' ? assetV : '1' %>" />
+<link rel="stylesheet" href="<%= typeof absUrl === 'function' ? absUrl('/css/styles.css') : '/css/styles.css' %>?v=<%= typeof assetV !== 'undefined' ? assetV : '1' %>" />
+<script>
+(function () {
+  function syncLayoutCompact() {
+    var w = document.documentElement.clientWidth || window.innerWidth || 0;
+    var touch = 'ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0;
+    /* Celular/tablet: até 992px OU aparelho com toque com largura “de desktop” (Safari modo computador). */
+    var compact = w <= 992 || (touch && w <= 1200);
+    document.documentElement.classList.toggle('layout-compact', compact);
+  }
+  syncLayoutCompact();
+  window.addEventListener('resize', syncLayoutCompact, { passive: true });
+  window.addEventListener('orientationchange', function () {
+    setTimeout(syncLayoutCompact, 250);
+  });
+})();
+</script>
