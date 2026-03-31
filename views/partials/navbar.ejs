@@ -1,8 +1,15 @@
-<aside class="sidebar">
+<header class="mobile-topbar no-print" role="banner">
+  <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar-nav-drawer">
+    <span class="sidebar-toggle-icon" aria-hidden="true"></span>
+  </button>
+  <a href="/" class="mobile-topbar-title">Cleany</a>
+</header>
+<div class="sidebar-overlay no-print" id="sidebar-overlay" aria-hidden="true"></div>
+<aside class="sidebar" id="sidebar-nav-drawer">
   <a href="/" class="sidebar-logo" title="Página inicial">
     <img src="/img/logocleany.png" alt="Cleany - Trituradores de Resíduos" />
   </a>
-  <nav class="sidebar-nav">
+  <nav class="sidebar-nav" id="sidebar-nav">
     <a href="/" class="sidebar-link">
       <span class="sidebar-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
       Página inicial
@@ -144,6 +151,44 @@
     var msg = form.getAttribute('data-confirm-msg') || 'Deseja realmente continuar?';
     openConfirm(title, msg, form);
   }, true);
+})();
+
+(function() {
+  var toggle = document.getElementById('sidebar-toggle');
+  var sidebar = document.getElementById('sidebar-nav-drawer');
+  var overlay = document.getElementById('sidebar-overlay');
+  if (!toggle || !sidebar || !overlay) return;
+
+  function closeNav() {
+    sidebar.classList.remove('sidebar--open');
+    overlay.classList.remove('sidebar-overlay--visible');
+    overlay.setAttribute('aria-hidden', 'true');
+    toggle.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
+  function openNav() {
+    sidebar.classList.add('sidebar--open');
+    overlay.classList.add('sidebar-overlay--visible');
+    overlay.setAttribute('aria-hidden', 'false');
+    toggle.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  }
+
+  toggle.addEventListener('click', function() {
+    if (sidebar.classList.contains('sidebar--open')) closeNav();
+    else openNav();
+  });
+  overlay.addEventListener('click', closeNav);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeNav();
+  });
+
+  sidebar.querySelectorAll('a.sidebar-link').forEach(function(link) {
+    link.addEventListener('click', function() {
+      closeNav();
+    });
+  });
 })();
 </script>
 

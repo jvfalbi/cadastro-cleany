@@ -1,12 +1,40 @@
-const express = require('express');
 const path = require('path');
+// Caminho absoluto à raiz do projeto (onde fica package.json e .env). PM2 nem sempre usa cwd correto.
+const ENV_PATH = path.resolve(__dirname, '..', '.env');
+const envResult = require('dotenv').config({ path: ENV_PATH });
+if (envResult.error) {
+  console.warn('[Cleany] .env não carregado:', ENV_PATH, '(' + (envResult.error.code || envResult.error.message) + ') — login/senha vêm do código padrão.');
+} else {
+  console.log('[Cleany] .env OK:', ENV_PATH);
+}
+const express = require('express');
 const session = require('express-session');
+const SQLiteStore = require('connect-sqlite3')(session);
 const db = require('./db');
 
 const app = express();
 
-const LOGIN_USER = process.env.LOGIN_USER || 'joaofalbi';
-const LOGIN_PASSWORD = process.env.LOGIN_PASSWORD || 'Butt1005!';
+const isProd = process.env.NODE_ENV === 'production';
+let LOGIN_USER = (process.env.LOGIN_USER || '').trim();
+let LOGIN_PASSWORD = (process.env.LOGIN_PASSWORD || '').trim();
+
+if (isProd) {
+  if (!LOGIN_USER || !LOGIN_PASSWORD) {
+    console.error('[Cleany] Produção: defina LOGIN_USER e LOGIN_PASSWORD no .env em', ENV_PATH);
+    process.exit(1);
+  }
+  const sec = (process.env.SESSION_SECRET || '').trim();
+  if (sec.length < 16) {
+    console.error('[Cleany] Produção: SESSION_SECRET no .env com pelo menos 16 caracteres.');
+    process.exit(1);
+  }
+} else {
+  if (!LOGIN_USER) LOGIN_USER = 'cleany-dev';
+  if (!LOGIN_PASSWORD) LOGIN_PASSWORD = 'cleany-dev';
+  if (!process.env.LOGIN_USER || !process.env.LOGIN_PASSWORD) {
+    console.warn('[Cleany] Dev: sem LOGIN_* no .env — login cleany-dev / cleany-dev (crie .env para personalizar).');
+  }
+}
 
 function requireAuth(req, res, next) {
   if (req.session && req.session.user) return next();
@@ -32,6 +60,10 @@ app.set('views', path.join(__dirname, '..', 'views'));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
+  store: new SQLiteStore({
+    db: 'sessions.sqlite',
+    dir: path.join(__dirname, '..', 'data'),
+  }),
   secret: process.env.SESSION_SECRET || 'cleany-session-secret',
   resave: false,
   saveUninitialized: false,
@@ -57,7 +89,8 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  const { username, password } = req.body || {};
+  const username = String((req.body && req.body.username) || '').trim();
+  const password = String((req.body && req.body.password) || '').trim();
   if (username === LOGIN_USER && password === LOGIN_PASSWORD) {
     req.session.user = username;
     return res.redirect('/');
@@ -645,6 +678,7 @@ app.get('/financeiro', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
+  const mode = isProd ? 'produção' : 'desenvolvimento';
+  console.log(`[Cleany] ${mode} | http://localhost:${PORT} | login: ${LOGIN_USER}`);
 });
 
