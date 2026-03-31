@@ -241,10 +241,15 @@ app.post('/clientes', (req, res) => {
   const nome_fantasia = (req.body.nome_fantasia || '').trim() || null;
   const checkCodigo = (cb) => {
     if (!codigo) return cb(null, false);
-    db.get('SELECT id FROM customers WHERE TRIM(COALESCE(codigo, "")) = ?', [codigo], (err, row) => {
-      if (err) return cb(err, true);
-      cb(null, !!row);
-    });
+    /* Aspas simples no SQL: "" em SQLite é identificador, não string — quebrava em produção (Linux). */
+    db.get(
+      'SELECT id FROM customers WHERE codigo IS NOT NULL AND TRIM(codigo) = ?',
+      [codigo],
+      (err, row) => {
+        if (err) return cb(err, true);
+        cb(null, !!row);
+      }
+    );
   };
   checkCodigo((err, isDuplicate) => {
     if (err) {
@@ -330,10 +335,14 @@ app.post('/clientes/:id', (req, res) => {
   const nome_fantasia = (req.body.nome_fantasia || '').trim() || null;
   const checkCodigo = (cb) => {
     if (!codigo) return cb(null, false);
-    db.get('SELECT id FROM customers WHERE TRIM(COALESCE(codigo, "")) = ? AND id != ?', [codigo, id], (err, row) => {
-      if (err) return cb(err, true);
-      cb(null, !!row);
-    });
+    db.get(
+      'SELECT id FROM customers WHERE codigo IS NOT NULL AND TRIM(codigo) = ? AND id != ?',
+      [codigo, id],
+      (err, row) => {
+        if (err) return cb(err, true);
+        cb(null, !!row);
+      }
+    );
   };
   checkCodigo((err, isDuplicate) => {
     if (err) return res.status(500).send('Erro ao atualizar cliente.');
