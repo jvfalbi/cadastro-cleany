@@ -45,6 +45,10 @@
                       placeholder="Código da planilha"
                     />
                   </div>
+                  <% } else { %>
+                  <p class="hint" style="grid-column: 1 / -1; margin: 0 0 0.25rem 0">
+                    O <strong>código</strong> do cliente será gerado automaticamente na sequência dos cadastros ao salvar.
+                  </p>
                   <% } %>
                   <div class="form-group">
                     <label for="name">Nome*</label>

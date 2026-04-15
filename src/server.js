@@ -374,41 +374,36 @@ app.post('/clientes', (req, res) => {
       error: 'Informe o CPF ou CNPJ.',
     });
   }
-  const codigo = (req.body.codigo || '').trim() || null;
   const nome_fantasia = (req.body.nome_fantasia || '').trim() || null;
-  const checkCodigo = (cb) => {
-    if (!codigo) return cb(null, false);
-    /* Aspas simples no SQL: "" em SQLite é identificador, não string — quebrava em produção (Linux). */
+
+  /** Próximo número na sequência da planilha (mesma lógica de ordem_planilha). */
+  function findNextCodigoLivre(startNum, cb) {
+    const candidate = String(startNum);
     db.get(
       'SELECT id FROM customers WHERE codigo IS NOT NULL AND TRIM(codigo) = ?',
-      [codigo],
+      [candidate],
       (err, row) => {
-        if (err) return cb(err, true);
-        cb(null, !!row);
+        if (err) return cb(err);
+        if (!row) return cb(null, candidate);
+        findNextCodigoLivre(startNum + 1, cb);
       }
     );
-  };
-  checkCodigo((err, isDuplicate) => {
-    if (err) {
-      console.error('[Cleany] POST /clientes (checagem código):', err.message);
+  }
+
+  db.get('SELECT COALESCE(MAX(ordem_planilha), 0) + 1 AS next FROM customers', [], (errOrdem, row) => {
+    if (errOrdem) {
+      console.error('[Cleany] POST /clientes (ordem_planilha):', errOrdem.message);
       return res.status(500).send('Erro ao salvar cliente.');
     }
-    if (isDuplicate) {
-      return res.render('customers/form', {
-        customer: { codigo, name, nome_fantasia, phone, email, address, document, notes },
-        error: 'Este código já está em uso por outro cliente. Escolha outro ou deixe em branco.',
-      });
-    }
-    db.get('SELECT COALESCE(MAX(ordem_planilha), 0) + 1 AS next FROM customers', [], (errOrdem, row) => {
-      if (errOrdem) {
-        console.error('[Cleany] POST /clientes (ordem_planilha):', errOrdem.message);
+    const ordem = row ? row.next : 1;
+    findNextCodigoLivre(ordem, (errCod, codigoFinal) => {
+      if (errCod) {
+        console.error('[Cleany] POST /clientes (código sequência):', errCod.message);
         return res.status(500).send('Erro ao salvar cliente.');
       }
-      const ordem = row ? row.next : 1;
-      /* db.run: não usar prepare+finalize logo após run — em produção o finalize podia rodar antes do INSERT terminar. */
       db.run(
         'INSERT INTO customers (name, phone, email, address, document, notes, ordem_planilha, codigo, nome_fantasia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [name, phoneTrim, email, address, documentTrim, notes, ordem, codigo, nome_fantasia],
+        [name, phoneTrim, email, address, documentTrim, notes, ordem, codigoFinal, nome_fantasia],
         (errIns) => {
           if (errIns) {
             console.error('[Cleany] POST /clientes (INSERT):', errIns.message);
