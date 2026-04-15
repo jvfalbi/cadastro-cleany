@@ -877,8 +877,8 @@ app.get('/calendario', (req, res) => {
       ordersByDate[k].sort(compareOrdersByTime);
     });
 
-    const TL_START = 6;
-    const TL_END = 22;
+    const TL_START = 8;
+    const TL_END = 19;
     const TL_TOTAL_MIN = (TL_END - TL_START) * 60;
 
     function orderTimelineStyle(o) {
