@@ -708,6 +708,31 @@ table {
   font-size: 0.9rem;
 }
 
+.clientes-sort-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.clientes-sort-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.clientes-sort-label .th-label {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.clientes-sort-toolbar .filter-select {
+  min-width: 12.5rem;
+  max-width: 100%;
+}
+
 .table-clientes {
   table-layout: fixed;
   max-width: 100%;
