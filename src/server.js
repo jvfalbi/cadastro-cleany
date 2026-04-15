@@ -426,7 +426,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/clientes', (req, res) => {
-  db.all("SELECT * FROM customers ORDER BY COALESCE(CAST(NULLIF(TRIM(codigo), '') AS INTEGER), 999999), codigo, id", (err, rows) => {
+  db.all('SELECT * FROM customers ORDER BY id DESC', (err, rows) => {
     if (err) {
       return res.status(500).send('Erro ao carregar clientes.');
     }
@@ -441,9 +441,12 @@ app.get('/clientes/novo', (req, res) => {
 app.post('/clientes', (req, res) => {
   const { name, phone, email, address, document, notes } = req.body;
   const phoneTrim = (phone || '').trim();
+  const codigoInput = (req.body.codigo || '').trim() || null;
+
   if (!phoneTrim) {
     return res.render('customers/form', {
       customer: {
+        codigo: codigoInput,
         name,
         nome_fantasia: (req.body.nome_fantasia || '').trim(),
         phone,
@@ -459,6 +462,7 @@ app.post('/clientes', (req, res) => {
   if (!documentTrim) {
     return res.render('customers/form', {
       customer: {
+        codigo: codigoInput,
         name,
         nome_fantasia: (req.body.nome_fantasia || '').trim(),
         phone,
@@ -486,28 +490,63 @@ app.post('/clientes', (req, res) => {
     );
   }
 
+  function insertCliente(ordem, codigoFinal) {
+    db.run(
+      'INSERT INTO customers (name, phone, email, address, document, notes, ordem_planilha, codigo, nome_fantasia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, phoneTrim, email, address, documentTrim, notes, ordem, codigoFinal, nome_fantasia],
+      (errIns) => {
+        if (errIns) {
+          console.error('[Cleany] POST /clientes (INSERT):', errIns.message);
+          return res.status(500).send('Erro ao salvar cliente.');
+        }
+        res.redirect('/clientes');
+      }
+    );
+  }
+
   db.get('SELECT COALESCE(MAX(ordem_planilha), 0) + 1 AS next FROM customers', [], (errOrdem, row) => {
     if (errOrdem) {
       console.error('[Cleany] POST /clientes (ordem_planilha):', errOrdem.message);
       return res.status(500).send('Erro ao salvar cliente.');
     }
     const ordem = row ? row.next : 1;
+
+    if (codigoInput) {
+      db.get(
+        'SELECT id FROM customers WHERE codigo IS NOT NULL AND TRIM(codigo) = ?',
+        [codigoInput],
+        (errDup, rowDup) => {
+          if (errDup) {
+            console.error('[Cleany] POST /clientes (código duplicado):', errDup.message);
+            return res.status(500).send('Erro ao salvar cliente.');
+          }
+          if (rowDup) {
+            return res.render('customers/form', {
+              customer: {
+                codigo: codigoInput,
+                name,
+                nome_fantasia,
+                phone: phoneTrim,
+                email,
+                address,
+                document: documentTrim,
+                notes,
+              },
+              error: 'Este código já está em uso por outro cliente. Escolha outro ou deixe em branco para gerar automaticamente.',
+            });
+          }
+          insertCliente(ordem, codigoInput);
+        }
+      );
+      return;
+    }
+
     findNextCodigoLivre(ordem, (errCod, codigoFinal) => {
       if (errCod) {
         console.error('[Cleany] POST /clientes (código sequência):', errCod.message);
         return res.status(500).send('Erro ao salvar cliente.');
       }
-      db.run(
-        'INSERT INTO customers (name, phone, email, address, document, notes, ordem_planilha, codigo, nome_fantasia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [name, phoneTrim, email, address, documentTrim, notes, ordem, codigoFinal, nome_fantasia],
-        (errIns) => {
-          if (errIns) {
-            console.error('[Cleany] POST /clientes (INSERT):', errIns.message);
-            return res.status(500).send('Erro ao salvar cliente.');
-          }
-          res.redirect('/clientes');
-        }
-      );
+      insertCliente(ordem, codigoFinal);
     });
   });
 });
@@ -711,7 +750,7 @@ app.get('/ordens/nova', (req, res) => {
   const next = (customers, prefillOcupados) => {
     res.render('orders/form', { customers, prefillDate, prefillOcupados: prefillOcupados || [] });
   };
-  db.all("SELECT id, name, codigo FROM customers ORDER BY COALESCE(CAST(NULLIF(TRIM(codigo), '') AS INTEGER), 999999), codigo, id", (err, customers) => {
+  db.all('SELECT id, name, codigo FROM customers ORDER BY id DESC', (err, customers) => {
     if (err) {
       return res.status(500).send('Erro ao carregar clientes.');
     }

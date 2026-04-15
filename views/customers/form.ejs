@@ -34,22 +34,19 @@
                 method="post"
               >
                 <div class="form-grid">
-                  <% if (customer && customer.id) { %>
                   <div class="form-group">
                     <label for="codigo">Código</label>
                     <input
                       type="text"
                       id="codigo"
                       name="codigo"
-                      value="<%= customer.codigo ? customer.codigo : '' %>"
-                      placeholder="Código da planilha"
+                      value="<%= customer && customer.codigo ? customer.codigo : '' %>"
+                      placeholder="<%= (customer && customer.id) ? 'Código da planilha' : 'Opcional — vazio = sequência automática' %>"
                     />
+                    <% if (!(customer && customer.id)) { %>
+                    <span class="hint" style="display: block; margin-top: 0.35rem">Em branco, o sistema define o próximo número da sequência. Preencha para usar um código próprio.</span>
+                    <% } %>
                   </div>
-                  <% } else { %>
-                  <p class="hint" style="grid-column: 1 / -1; margin: 0 0 0.25rem 0">
-                    O <strong>código</strong> do cliente será gerado automaticamente na sequência dos cadastros ao salvar.
-                  </p>
-                  <% } %>
                   <div class="form-group">
                     <label for="name">Nome*</label>
                     <input
