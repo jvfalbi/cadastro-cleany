@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 // Caminho absoluto à raiz do projeto (onde fica package.json e .env). PM2 nem sempre usa cwd correto.
 const ENV_PATH = path.resolve(__dirname, '..', '.env');
 const envResult = require('dotenv').config({ path: ENV_PATH });
@@ -13,6 +14,7 @@ const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
 const db = require('./db');
 const appUsers = require('./app-users');
+const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 
@@ -140,9 +142,47 @@ function marcarAtrasadasComoConcluidas(cb) {
   );
 }
 const PORT = process.env.PORT || 3000;
+/** Nome do app no PM2 (ecosystem.config.cjs). Usado só em /admin/sistema → reiniciar. */
+const PM2_APP_NAME = cleanEnvCredential(process.env.PM2_APP_NAME) || 'cadastro-cleany';
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const STYLES_PATH = path.join(PUBLIC_DIR, 'css', 'styles.css');
+const SESSIONS_DB_PATH = path.join(__dirname, '..', 'data', 'sessions.sqlite');
+
+function touchPublicStaticAssets() {
+  const now = new Date();
+  let count = 0;
+  for (const sub of ['css', 'js']) {
+    const dir = path.join(PUBLIC_DIR, sub);
+    if (!fs.existsSync(dir)) continue;
+    for (const name of fs.readdirSync(dir)) {
+      if (!/\.(css|js)$/i.test(name)) continue;
+      try {
+        fs.utimesSync(path.join(dir, name), now, now);
+        count += 1;
+      } catch (e) {
+        console.warn('[Cleany] touch asset:', name, e.message);
+      }
+    }
+  }
+  return count;
+}
+
+function schedulePm2Restart() {
+  const appName = PM2_APP_NAME;
+  if (process.platform === 'win32') {
+    spawn('cmd', ['/c', `timeout /t 1 /nobreak >nul & pm2 restart ${appName}`], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    }).unref();
+  } else {
+    spawn('sh', ['-c', `sleep 1 && pm2 restart ${appName.replace(/[^a-zA-Z0-9._-]/g, '')}`], {
+      detached: true,
+      stdio: 'ignore',
+    }).unref();
+  }
+}
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
@@ -307,6 +347,62 @@ app.post('/admin/usuarios/:id/senha', requireAdmin, (req, res) => {
       return res.redirect('/admin/usuarios?erro=' + encodeURIComponent(err.message || 'Erro ao alterar senha.'));
     }
     res.redirect('/admin/usuarios?ok=senha');
+  });
+});
+
+app.get('/admin/sistema', requireAdmin, (req, res) => {
+  const q = req.query || {};
+  let success = null;
+  const error = q.erro ? String(q.erro) : null;
+  if (q.ok === 'cache') {
+    success =
+      'Cache de arquivos estáticos atualizado (data dos .css/.js). Recarregue as páginas (F5 ou Ctrl+F5).';
+  } else if (q.ok === 'reiniciar') {
+    success =
+      'Reinício do aplicativo pedido ao PM2. Em alguns segundos o site pode ficar indisponível e voltar sozinho.';
+  } else if (q.ok === 'sessoes') {
+    success = 'Sessões de login apagadas. Todos os usuários precisarão entrar de novo.';
+  } else if (q.ok === 'sessoes-vazio') {
+    success = 'Não havia arquivo de sessões ainda; nada a limpar.';
+  }
+  res.render('admin/sistema', {
+    success,
+    error,
+    assetVFixo: !!(process.env.ASSET_V && String(process.env.ASSET_V).trim()),
+    pm2Name: PM2_APP_NAME,
+  });
+});
+
+app.post('/admin/sistema/limpar-cache', requireAdmin, (req, res) => {
+  try {
+    const n = touchPublicStaticAssets();
+    console.log('[Cleany] Admin: limpar cache de assets — arquivos tocados:', n);
+  } catch (e) {
+    console.error('[Cleany] Admin limpar-cache:', e.message);
+    return res.redirect('/admin/sistema?erro=' + encodeURIComponent('Erro ao atualizar arquivos estáticos.'));
+  }
+  res.redirect('/admin/sistema?ok=cache');
+});
+
+app.post('/admin/sistema/reiniciar', requireAdmin, (req, res) => {
+  console.warn('[Cleany] Admin: reinício PM2 solicitado —', PM2_APP_NAME);
+  res.redirect('/admin/sistema?ok=reiniciar');
+  setTimeout(() => schedulePm2Restart(), 400);
+});
+
+app.post('/admin/sistema/limpar-sessoes', requireAdmin, (req, res) => {
+  if (!fs.existsSync(SESSIONS_DB_PATH)) {
+    return res.redirect('/admin/sistema?ok=sessoes-vazio');
+  }
+  const sdb = new sqlite3.Database(SESSIONS_DB_PATH);
+  sdb.run('DELETE FROM sessions', (err) => {
+    sdb.close();
+    if (err) {
+      console.error('[Cleany] Admin limpar-sessoes:', err.message);
+      return res.redirect('/admin/sistema?erro=' + encodeURIComponent('Erro ao limpar sessões: ' + err.message));
+    }
+    console.warn('[Cleany] Admin: tabela sessions esvaziada.');
+    res.redirect('/admin/sistema?ok=sessoes');
   });
 });
 

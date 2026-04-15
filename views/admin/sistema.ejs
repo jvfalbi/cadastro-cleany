@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Manutenção - Cleany</title>
+    <%- include('../partials/head-viewport') %>
+    <%- include('../partials/head-styles') %>
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="layout layout--nav-drawer">
+        <%- include('../partials/navbar') %>
+        <main class="main-content">
+          <div class="container">
+            <div class="page-header">
+              <div>
+                <div class="page-title">Manutenção</div>
+                <div class="page-subtitle">
+                  Atualizar versão dos arquivos no navegador e reiniciar o servidor (PM2 na EC2).
+                </div>
+              </div>
+            </div>
+
+            <% if (success) { %>
+            <div class="card" style="margin-bottom: 1rem; border-color: var(--primary-green, #2d6a4f); background: rgba(45, 106, 79, 0.08);">
+              <p style="margin: 0;"><%= success %></p>
+            </div>
+            <% } %>
+            <% if (error) { %>
+            <div class="card" style="margin-bottom: 1rem; border-color: #c0392b; background: rgba(192, 57, 43, 0.08);">
+              <p style="margin: 0;"><%= error %></p>
+            </div>
+            <% } %>
+
+            <% if (typeof assetVFixo !== 'undefined' && assetVFixo) { %>
+            <div class="card" style="margin-bottom: 1rem;">
+              <p style="margin: 0;">
+                <strong>Atenção:</strong> o <code>.env</code> define <code>ASSET_V</code>. Enquanto existir, a versão dos CSS/JS não muda com a data dos arquivos.
+                Para forçar nova versão, altere o valor de <code>ASSET_V</code> no servidor ou remova essa linha.
+              </p>
+            </div>
+            <% } %>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <h2 class="page-title" style="font-size: 1.1rem; margin-bottom: 0.75rem;">Cache dos arquivos (CSS / JS)</h2>
+              <p class="hint" style="margin-bottom: 1rem;">
+                Atualiza a data dos arquivos em <code>public/css</code> e <code>public/js</code> para o navegador carregar outra versão no parâmetro <code>?v=...</code>.
+              </p>
+              <form method="post" action="/admin/sistema/limpar-cache">
+                <button type="submit" class="btn btn-primary">Atualizar versão dos arquivos estáticos</button>
+              </form>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <h2 class="page-title" style="font-size: 1.1rem; margin-bottom: 0.75rem;">Sessões de login</h2>
+              <p class="hint" style="margin-bottom: 1rem;">
+                Apaga cookies de sessão no servidor: <strong>todos os usuários serão deslogados</strong> (útil após mudança de senha ou suspeita de sessão antiga).
+              </p>
+              <form method="post" action="/admin/sistema/limpar-sessoes" class="js-confirm-submit" data-confirm-title="Limpar sessões" data-confirm-msg="Todos os usuários serão desconectados. Continuar?">
+                <button type="submit" class="btn btn-secondary">Encerrar todas as sessões</button>
+              </form>
+            </div>
+
+            <div class="card">
+              <h2 class="page-title" style="font-size: 1.1rem; margin-bottom: 0.75rem;">Reiniciar aplicativo (PM2)</h2>
+              <p class="hint" style="margin-bottom: 1rem;">
+                Envia <code>pm2 restart <%= typeof pm2Name !== 'undefined' ? pm2Name : 'cadastro-cleany' %></code> no servidor (após ~1 s). Na EC2 o site pode ficar alguns segundos fora do ar.
+                No PC sem PM2, pode não acontecer nada útil — use o terminal local.
+              </p>
+              <form method="post" action="/admin/sistema/reiniciar" class="js-confirm-submit" data-confirm-title="Reiniciar servidor" data-confirm-msg="O aplicativo será reiniciado. Deseja continuar?">
+                <button type="submit" class="btn btn-secondary" style="border-color: #c0392b; color: #c0392b;">Reiniciar via PM2</button>
+              </form>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
