@@ -12,6 +12,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
+        // Descomente e aponte para pasta persistente (evita banco novo a cada deploy):
+        // DATA_DIR: '/var/lib/cleany-data',
       },
       // Credenciais: arquivo .env na raiz (carregado pelo dotenv em src/server.js)
     },

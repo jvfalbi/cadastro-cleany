@@ -48,7 +48,7 @@
                       placeholder="<%= (customer && customer.id) ? 'Código da planilha' : 'Opcional — vazio = sequência automática' %>"
                     />
                     <% if (!(customer && customer.id)) { %>
-                    <span class="hint" style="display: block; margin-top: 0.35rem">Em branco, o sistema define o próximo número da sequência. Preencha para usar um código próprio.</span>
+                    <span class="hint" style="display: block; margin-top: 0.35rem">Em branco, o sistema gera o próximo código após o maior já cadastrado (ex.: se o último for 5060, virá 5061). Preencha para usar um código próprio.</span>
                     <% } %>
                   </div>
                   <div class="form-group">

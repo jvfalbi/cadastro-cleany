@@ -213,7 +213,8 @@ const PM2_APP_NAME = cleanEnvCredential(process.env.PM2_APP_NAME) || 'cadastro-c
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const STYLES_PATH = path.join(PUBLIC_DIR, 'css', 'styles.css');
-const SESSIONS_DB_PATH = path.join(__dirname, '..', 'data', 'sessions.sqlite');
+const DATA_DIR = db.dataDir || path.join(__dirname, '..', 'data');
+const SESSIONS_DB_PATH = path.join(DATA_DIR, 'sessions.sqlite');
 
 function touchPublicStaticAssets() {
   const now = new Date();
@@ -257,7 +258,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(session({
   store: new SQLiteStore({
     db: 'sessions.sqlite',
-    dir: path.join(__dirname, '..', 'data'),
+    dir: DATA_DIR,
   }),
   secret: process.env.SESSION_SECRET || 'cleany-session-secret',
   resave: false,
@@ -491,9 +492,13 @@ app.get('/', (req, res) => {
   });
 });
 
+/** Expressão SQL: código como inteiro (milhar 4.806→4806). Usada em ORDER BY e no próximo código automático. */
+const SQL_CODIGO_NUM_EXPR =
+  'CAST(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(IFNULL(codigo,\'\')), char(9), \'\'), char(13), \'\'), char(160), \'\'), \'.\', \'\'), \',\', \'\'), \' \', \'\') AS INTEGER)';
 /** Código como inteiro: remove milhar (4.806→4806). CAST direto em "4.806" no SQLite vira 4 e quebra a ordem. */
-const SQL_ORDER_CUSTOMERS_BY_CODIGO_NUM =
-  "COALESCE(CAST(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(IFNULL(codigo,'')), char(9), ''), char(13), ''), char(160), ''), '.', ''), ',', ''), ' ', '') AS INTEGER), -1) DESC, id DESC";
+const SQL_ORDER_CUSTOMERS_BY_CODIGO_NUM = `COALESCE(${SQL_CODIGO_NUM_EXPR}, -1) DESC, id DESC`;
+/** Maior código numérico cadastrado (para sequência automática: próximo = max + 1). */
+const SQL_MAX_CODIGO_NUM = `SELECT COALESCE(MAX(${SQL_CODIGO_NUM_EXPR}), 0) AS max_cod FROM customers`;
 
 app.get('/clientes', (req, res) => {
   db.all(
@@ -616,12 +621,20 @@ app.post('/clientes', (req, res) => {
       return;
     }
 
-    findNextCodigoLivre(ordem, (errCod, codigoFinal) => {
-      if (errCod) {
-        console.error('[Cleany] POST /clientes (código sequência):', errCod.message);
+    db.get(SQL_MAX_CODIGO_NUM, [], (errMax, rowMax) => {
+      if (errMax) {
+        console.error('[Cleany] POST /clientes (max código):', errMax.message);
         return res.status(500).send('Erro ao salvar cliente.');
       }
-      insertCliente(ordem, codigoFinal);
+      const maxCod = rowMax && rowMax.max_cod != null ? Number(rowMax.max_cod) : 0;
+      const startCodigo = (Number.isFinite(maxCod) ? maxCod : 0) + 1;
+      findNextCodigoLivre(startCodigo, (errCod, codigoFinal) => {
+        if (errCod) {
+          console.error('[Cleany] POST /clientes (código sequência):', errCod.message);
+          return res.status(500).send('Erro ao salvar cliente.');
+        }
+        insertCliente(ordem, codigoFinal);
+      });
     });
   });
 });

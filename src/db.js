@@ -2,14 +2,39 @@ const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 
-const dataDir = path.join(__dirname, '..', 'data');
+/**
+ * Em cada deploy (git pull, pasta nova, etc.) o projeto pode vir sem `data/database.sqlite`.
+ * O .gitignore não versiona o banco — correto — mas aí um deploy “limpo” cria arquivo NOVO vazio.
+ * Em produção use DATA_DIR ou DATABASE_PATH apontando para disco persistente (fora do release), ex.:
+ *   DATA_DIR=/var/lib/cleany-data
+ *   DATABASE_PATH=/var/lib/cleany-data/database.sqlite
+ */
+const rawDbFile = process.env.DATABASE_PATH && String(process.env.DATABASE_PATH).trim();
+const rawDataDir = process.env.DATA_DIR && String(process.env.DATA_DIR).trim();
+
+let dataDir;
+let dbPath;
+
+if (rawDbFile) {
+  dbPath = path.isAbsolute(rawDbFile) ? rawDbFile : path.resolve(process.cwd(), rawDbFile);
+  dataDir = path.dirname(dbPath);
+} else if (rawDataDir) {
+  dataDir = path.isAbsolute(rawDataDir) ? rawDataDir : path.resolve(process.cwd(), rawDataDir);
+  dbPath = path.join(dataDir, 'database.sqlite');
+} else {
+  dataDir = path.join(__dirname, '..', 'data');
+  dbPath = path.join(dataDir, 'database.sqlite');
+}
+
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const dbPath = path.join(dataDir, 'database.sqlite');
 const db = new sqlite3.Database(dbPath);
-console.log('[Cleany] Banco de dados:', dbPath);
+db.dataDir = dataDir;
+db.dbPath = dbPath;
+console.log('[Cleany] Pasta de dados (sessões + SQLite):', dataDir);
+console.log('[Cleany] Arquivo principal do banco:', dbPath);
 
 db.serialize(() => {
   db.run(
