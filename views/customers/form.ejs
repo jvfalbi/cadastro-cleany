@@ -24,6 +24,10 @@
             </div>
 
             <div class="card">
+              <% function esc(v) {
+  var s = (v || '').toString();
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+} %>
               <% if (typeof error !== 'undefined' && error) { %>
               <div class="form-error" role="alert">
                 <%= error %>
@@ -101,14 +105,81 @@
                     />
                   </div>
 
-                  <div class="form-group" style="grid-column: 1 / -1">
-                    <label for="address">Endereço completo</label>
-                    <input
-                      type="text"
-                      id="address"
-                      name="address"
-                      value="<%= customer ? customer.address : '' %>"
-                    />
+                  <div class="form-group form-section-address" style="grid-column: 1 / -1">
+                    <div class="form-section-title">Endereço</div>
+                    <% var _hasLegacy = customer && customer.address && !customer.address_street && !customer.address_city; %>
+                    <% if (_hasLegacy) { %>
+                    <p class="hint address-legacy-hint">
+                      Endereço antigo (texto livre): <strong><%= esc(customer.address) %></strong> — preencha os campos abaixo para atualizar para o formato novo.
+                    </p>
+                    <% } %>
+                    <div class="form-group cep-busca-row">
+                      <label for="cep">CEP</label>
+                      <div class="cep-row">
+                        <input
+                          type="text"
+                          id="cep"
+                          name="cep"
+                          inputmode="numeric"
+                          autocomplete="postal-code"
+                          maxlength="9"
+                          placeholder="00000-000"
+                          value="<%= customer && customer.cep ? customer.cep : '' %>"
+                        />
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-buscar-cep">Buscar CEP</button>
+                      </div>
+                      <span class="hint cep-status" id="cep-status" role="status"></span>
+                    </div>
+                    <div class="form-grid form-grid--address">
+                      <div class="form-group">
+                        <label for="address_street">Rua / logradouro*</label>
+                        <input
+                          type="text"
+                          id="address_street"
+                          name="address_street"
+                          required
+                          value="<%= customer && customer.address_street ? customer.address_street : '' %>"
+                          placeholder="Ex.: Rua das Flores"
+                          autocomplete="street-address"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label for="address_number">Número*</label>
+                        <input
+                          type="text"
+                          id="address_number"
+                          name="address_number"
+                          required
+                          value="<%= customer && customer.address_number ? customer.address_number : '' %>"
+                          placeholder="Ex.: 123 ou S/N"
+                          inputmode="numeric"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label for="address_neighborhood">Bairro</label>
+                        <input
+                          type="text"
+                          id="address_neighborhood"
+                          name="address_neighborhood"
+                          value="<%= customer && customer.address_neighborhood ? customer.address_neighborhood : '' %>"
+                          placeholder="Opcional"
+                          autocomplete="address-level2"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label for="address_city">Cidade* <span class="hint uf-inline" id="uf-display"><% if (customer && customer.address_state) { %>(<%= customer.address_state %>)<% } %></span></label>
+                        <input
+                          type="text"
+                          id="address_city"
+                          name="address_city"
+                          required
+                          value="<%= customer && customer.address_city ? customer.address_city : '' %>"
+                          placeholder="Preencha ou use Buscar CEP"
+                          autocomplete="address-level1"
+                        />
+                      </div>
+                    </div>
+                    <input type="hidden" name="address_state" id="address_state" value="<%= customer && customer.address_state ? customer.address_state : '' %>" />
                   </div>
 
                   <div class="form-group" style="grid-column: 1 / -1">
@@ -137,6 +208,80 @@
       </div>
 
     </div>
+    <script>
+      (function () {
+        var cep = document.getElementById('cep');
+        var btn = document.getElementById('btn-buscar-cep');
+        var street = document.getElementById('address_street');
+        var num = document.getElementById('address_number');
+        var bairro = document.getElementById('address_neighborhood');
+        var cidade = document.getElementById('address_city');
+        var uf = document.getElementById('address_state');
+        var statusEl = document.getElementById('cep-status');
+        var ufDisplay = document.getElementById('uf-display');
+
+        function onlyDigits(s) {
+          return String(s || '').replace(/\D/g, '');
+        }
+
+        function formatCepInput() {
+          if (!cep) return;
+          var d = onlyDigits(cep.value).slice(0, 8);
+          if (d.length <= 5) cep.value = d;
+          else cep.value = d.slice(0, 5) + '-' + d.slice(5);
+        }
+
+        function refreshUfDisplay() {
+          if (!ufDisplay) return;
+          var u = uf && uf.value ? uf.value.trim() : '';
+          ufDisplay.textContent = u ? '(' + u + ')' : '';
+        }
+
+        if (cep) {
+          cep.addEventListener('input', formatCepInput);
+        }
+
+        function buscarCep() {
+          if (!cep) return;
+          var d = onlyDigits(cep.value);
+          if (d.length !== 8) {
+            if (statusEl) statusEl.textContent = 'Informe o CEP com 8 dígitos.';
+            return;
+          }
+          if (statusEl) statusEl.textContent = 'Buscando...';
+          fetch('https://viacep.com.br/ws/' + d + '/json/')
+            .then(function (r) {
+              return r.json();
+            })
+            .then(function (data) {
+              if (!data || data.erro) {
+                if (statusEl) statusEl.textContent = 'CEP não encontrado.';
+                return;
+              }
+              if (street) street.value = data.logradouro || '';
+              if (bairro) bairro.value = data.bairro || '';
+              if (cidade) cidade.value = data.localidade || '';
+              if (uf) uf.value = (data.uf || '').toUpperCase().slice(0, 2);
+              refreshUfDisplay();
+              if (statusEl) statusEl.textContent = '';
+              if (num && !num.value.trim()) num.focus();
+              else if (street && !street.value.trim()) street.focus();
+            })
+            .catch(function () {
+              if (statusEl) statusEl.textContent = 'Não foi possível consultar. Verifique a conexão e tente de novo.';
+            });
+        }
+
+        if (btn) btn.addEventListener('click', buscarCep);
+        if (cep) {
+          cep.addEventListener('blur', function () {
+            var d = onlyDigits(cep.value);
+            if (d.length === 8 && street && !String(street.value || '').trim()) buscarCep();
+          });
+        }
+        if (uf) uf.addEventListener('change', refreshUfDisplay);
+      })();
+    </script>
   </body>
 </html>
 

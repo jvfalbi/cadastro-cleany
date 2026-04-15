@@ -27,6 +27,11 @@
   var s = (v || '').toString().replace(/\0/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
   return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 } %>
+              <% if (customers && customers.length) { %>
+              <p id="clientes-filter-no-match" class="clientes-filter-no-match" hidden role="status">
+                Nenhum cliente corresponde aos filtros (a lista não foi apagada). Use <strong>Limpar</strong> ou esvazie os campos de pesquisa.
+              </p>
+              <% } %>
               <table class="table-clientes">
                 <colgroup>
                   <col style="width: 7rem" />
@@ -42,31 +47,31 @@
                       <button type="button" class="th-sort" data-sort-col="codigo" aria-label="Ordenar por código">
                         <span class="th-sort-text">Código</span><span class="th-sort-dir" aria-hidden="true"></span>
                       </button>
-                      <input type="text" id="filter-codigo" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por código" />
+                      <input type="search" id="filter-codigo" name="search_codigo" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por código" autocomplete="off" autocorrect="off" spellcheck="false" />
                     </th>
                     <th>
                       <button type="button" class="th-sort" data-sort-col="nome" aria-label="Ordenar por nome">
                         <span class="th-sort-text">Nome</span><span class="th-sort-dir" aria-hidden="true"></span>
                       </button>
-                      <input type="text" id="filter-nome" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por nome" />
+                      <input type="search" id="filter-nome" name="search_nome" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por nome" autocomplete="off" autocorrect="off" spellcheck="false" />
                     </th>
                     <th>
                       <button type="button" class="th-sort" data-sort-col="cpf" aria-label="Ordenar por CPF">
                         <span class="th-sort-text">CPF</span><span class="th-sort-dir" aria-hidden="true"></span>
                       </button>
-                      <input type="text" id="filter-cpf" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por CPF" />
+                      <input type="search" id="filter-cpf" name="search_cpf" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por CPF" autocomplete="off" autocorrect="off" spellcheck="false" />
                     </th>
                     <th>
                       <button type="button" class="th-sort" data-sort-col="celular" aria-label="Ordenar por celular">
                         <span class="th-sort-text">Celular</span><span class="th-sort-dir" aria-hidden="true"></span>
                       </button>
-                      <input type="text" id="filter-celular" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por celular" />
+                      <input type="search" id="filter-celular" name="search_celular" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por celular" autocomplete="off" autocorrect="off" spellcheck="false" />
                     </th>
                     <th>
                       <button type="button" class="th-sort" data-sort-col="endereco" aria-label="Ordenar por endereço">
                         <span class="th-sort-text">Endereço</span><span class="th-sort-dir" aria-hidden="true"></span>
                       </button>
-                      <input type="text" id="filter-endereco" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por endereço" />
+                      <input type="search" id="filter-endereco" name="search_endereco" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por endereço" autocomplete="off" autocorrect="off" spellcheck="false" />
                     </th>
                     <th class="filter-actions">
                       <span class="th-label">Ações</span>
@@ -84,12 +89,12 @@
                   </tr>
                   <% } else { %> <% customers.forEach(function (c) { %>
                   <% var _codDigits = String(c.codigo || '').replace(/\D/g, ''); var _sortCod = _codDigits === '' ? -1 : parseInt(_codDigits, 10); %>
-                  <tr class="filterable-row" data-row-id="<%= c.id %>" data-sort-codigo-num="<%= isNaN(_sortCod) ? -1 : _sortCod %>" data-codigo="<%= esc((c.codigo || '').toLowerCase()) %>" data-nome="<%= esc((c.name || '').toLowerCase()) %>" data-cpf="<%= esc((c.document || '').toLowerCase()) %>" data-celular="<%= esc((c.phone || '').toLowerCase()) %>" data-endereco="<%= esc((c.address || '').toLowerCase()) %>">
+                  <tr class="filterable-row" data-row-id="<%= c.id %>" data-sort-codigo-num="<%= isNaN(_sortCod) ? -1 : _sortCod %>" data-codigo="<%= esc((c.codigo || '').toLowerCase()) %>" data-nome="<%= esc((c.name || '').toLowerCase()) %>" data-cpf="<%= esc((c.document || '').toLowerCase()) %>" data-celular="<%= esc((c.phone || '').toLowerCase()) %>" data-endereco="<%= esc((c.address_display || c.address || '').toLowerCase()) %>">
                     <td><%= esc(c.codigo || '-') %></td>
                     <td><%= esc(c.name || '') %></td>
                     <td><%= esc(c.document || '-') %></td>
                     <td><%= esc(c.phone || '-') %></td>
-                    <td><%= esc(c.address || '-') %></td>
+                    <td><%= esc(c.address_display || c.address || '-') %></td>
                     <td>
                       <div class="btn-group">
                         <a
@@ -133,6 +138,7 @@
         var filterCelular = document.getElementById('filter-celular');
         var filterEndereco = document.getElementById('filter-endereco');
         var filterClear = document.getElementById('filter-clear');
+        var filterNoMatch = document.getElementById('clientes-filter-no-match');
         var tbody = document.querySelector('.table-clientes tbody');
         var sortCol = 'codigo';
         var sortDir = 'desc';
@@ -228,18 +234,26 @@
           var celular = (filterCelular && filterCelular.value || '').trim().toLowerCase();
           var endereco = (filterEndereco && filterEndereco.value || '').trim().toLowerCase();
 
+          var dataVisible = 0;
+          var dataTotal = 0;
           rows.forEach(function (tr) {
             if (tr.querySelector('.table-empty')) {
               tr.style.display = '';
               return;
             }
+            dataTotal += 1;
             var matchCodigo = !codigo || (tr.dataset.codigo && tr.dataset.codigo.indexOf(codigo) !== -1);
             var matchNome = !nome || (tr.dataset.nome && tr.dataset.nome.indexOf(nome) !== -1);
             var matchCpf = !cpf || (tr.dataset.cpf && tr.dataset.cpf.indexOf(cpf) !== -1);
             var matchCelular = !celular || (tr.dataset.celular && tr.dataset.celular.indexOf(celular) !== -1);
             var matchEndereco = !endereco || (tr.dataset.endereco && tr.dataset.endereco.indexOf(endereco) !== -1);
-            tr.style.display = (matchCodigo && matchNome && matchCpf && matchCelular && matchEndereco) ? '' : 'none';
+            var show = matchCodigo && matchNome && matchCpf && matchCelular && matchEndereco;
+            tr.style.display = show ? '' : 'none';
+            if (show) dataVisible += 1;
           });
+          if (filterNoMatch) {
+            filterNoMatch.hidden = !(dataTotal > 0 && dataVisible === 0);
+          }
         }
 
         function clearFilters() {

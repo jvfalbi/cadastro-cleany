@@ -129,6 +129,72 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+/** Endereço estruturado + linha única em `address` (lista, O.S., legado). */
+function readCustomerAddressFromBody(body) {
+  const cepDigits = String(body.cep || '').replace(/\D/g, '');
+  const cep =
+    cepDigits.length === 8 ? cepDigits.slice(0, 5) + '-' + cepDigits.slice(5) : String(body.cep || '').trim() || null;
+  const ufRaw = String(body.address_state || '')
+    .replace(/[^a-zA-Z]/g, '')
+    .toUpperCase()
+    .slice(0, 2);
+  return {
+    cep,
+    address_street: String(body.address_street || '').trim(),
+    address_number: String(body.address_number || '').trim(),
+    address_neighborhood: String(body.address_neighborhood || '').trim() || null,
+    address_city: String(body.address_city || '').trim(),
+    address_state: ufRaw || null,
+  };
+}
+
+function validateStructuredAddress(addr) {
+  if (!addr.address_street) return 'Informe a rua (logradouro).';
+  if (!addr.address_number) return 'Informe o número.';
+  if (!addr.address_city) return 'Informe a cidade.';
+  return null;
+}
+
+function formatCustomerAddressLine(row) {
+  const rua = (row.address_street || '').trim();
+  const num = (row.address_number || '').trim();
+  const bairro = (row.address_neighborhood || '').trim();
+  const cidade = (row.address_city || '').trim();
+  const uf = (row.address_state || '').trim();
+  let cep = String(row.cep || '').trim();
+  const cepD = cep.replace(/\D/g, '');
+  if (cepD.length === 8) cep = cepD.slice(0, 5) + '-' + cepD.slice(5);
+  const parts = [];
+  if (rua || num) {
+    let line = rua;
+    if (num) line += (line ? ', ' : '') + 'nº ' + num;
+    if (line.trim()) parts.push(line.trim());
+  }
+  if (bairro) parts.push(bairro);
+  if (cidade || uf) {
+    parts.push(cidade && uf ? `${cidade} / ${uf}` : cidade || uf);
+  }
+  if (cep) parts.push('CEP ' + cep);
+  const built = parts.join(' — ');
+  if (built) return built;
+  return String(row.address || '').trim() || null;
+}
+
+function mergeCustomerForForm(body, extra = {}) {
+  const addr = readCustomerAddressFromBody(body);
+  return {
+    ...extra,
+    codigo: (body.codigo || '').trim() || null,
+    name: body.name,
+    nome_fantasia: (body.nome_fantasia || '').trim() || null,
+    phone: body.phone,
+    email: body.email,
+    document: body.document,
+    notes: body.notes,
+    ...addr,
+  };
+}
+
 function marcarAtrasadasComoConcluidas(cb) {
   db.run(
     `UPDATE service_orders SET status = 'Concluída', updated_at = datetime('now')
@@ -436,7 +502,11 @@ app.get('/clientes', (req, res) => {
     if (err) {
       return res.status(500).send('Erro ao carregar clientes.');
     }
-    res.render('customers/list', { customers: rows || [] });
+    const list = (rows || []).map((r) => ({
+      ...r,
+      address_display: formatCustomerAddressLine(r) || r.address || '',
+    }));
+    res.render('customers/list', { customers: list });
   });
 });
 
@@ -445,42 +515,33 @@ app.get('/clientes/novo', (req, res) => {
 });
 
 app.post('/clientes', (req, res) => {
-  const { name, phone, email, address, document, notes } = req.body;
+  const { name, phone, email, document, notes } = req.body;
   const phoneTrim = (phone || '').trim();
   const codigoInput = (req.body.codigo || '').trim() || null;
+  const documentTrim = (document || '').trim();
+  const nome_fantasia = (req.body.nome_fantasia || '').trim() || null;
+  const addr = readCustomerAddressFromBody(req.body);
+  const addrErr = validateStructuredAddress(addr);
 
   if (!phoneTrim) {
     return res.render('customers/form', {
-      customer: {
-        codigo: codigoInput,
-        name,
-        nome_fantasia: (req.body.nome_fantasia || '').trim(),
-        phone,
-        email,
-        address,
-        document,
-        notes,
-      },
+      customer: mergeCustomerForForm(req.body, {}),
       error: 'Informe o telefone.',
     });
   }
-  const documentTrim = (document || '').trim();
   if (!documentTrim) {
     return res.render('customers/form', {
-      customer: {
-        codigo: codigoInput,
-        name,
-        nome_fantasia: (req.body.nome_fantasia || '').trim(),
-        phone,
-        email,
-        address,
-        document,
-        notes,
-      },
+      customer: mergeCustomerForForm(req.body, {}),
       error: 'Informe o CPF ou CNPJ.',
     });
   }
-  const nome_fantasia = (req.body.nome_fantasia || '').trim() || null;
+  if (addrErr) {
+    return res.render('customers/form', {
+      customer: mergeCustomerForForm(req.body, {}),
+      error: addrErr,
+    });
+  }
+  const addressLine = formatCustomerAddressLine({ ...addr, address: null });
 
   /** Próximo número na sequência da planilha (mesma lógica de ordem_planilha). */
   function findNextCodigoLivre(startNum, cb) {
@@ -498,8 +559,25 @@ app.post('/clientes', (req, res) => {
 
   function insertCliente(ordem, codigoFinal) {
     db.run(
-      'INSERT INTO customers (name, phone, email, address, document, notes, ordem_planilha, codigo, nome_fantasia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, phoneTrim, email, address, documentTrim, notes, ordem, codigoFinal, nome_fantasia],
+      `INSERT INTO customers (name, phone, email, address, document, notes, ordem_planilha, codigo, nome_fantasia, cep, address_street, address_number, address_neighborhood, address_city, address_state)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        name,
+        phoneTrim,
+        email,
+        addressLine,
+        documentTrim,
+        notes,
+        ordem,
+        codigoFinal,
+        nome_fantasia,
+        addr.cep,
+        addr.address_street,
+        addr.address_number,
+        addr.address_neighborhood,
+        addr.address_city,
+        addr.address_state,
+      ],
       (errIns) => {
         if (errIns) {
           console.error('[Cleany] POST /clientes (INSERT):', errIns.message);
@@ -528,16 +606,7 @@ app.post('/clientes', (req, res) => {
           }
           if (rowDup) {
             return res.render('customers/form', {
-              customer: {
-                codigo: codigoInput,
-                name,
-                nome_fantasia,
-                phone: phoneTrim,
-                email,
-                address,
-                document: documentTrim,
-                notes,
-              },
+              customer: mergeCustomerForForm(req.body, { document: documentTrim }),
               error: 'Este código já está em uso por outro cliente. Escolha outro ou deixe em branco para gerar automaticamente.',
             });
           }
@@ -569,39 +638,29 @@ app.get('/clientes/:id/editar', (req, res) => {
 
 app.post('/clientes/:id', (req, res) => {
   const { id } = req.params;
-  const { name, phone, email, address, document, notes } = req.body;
+  const { name, phone, email, document, notes } = req.body;
   const phoneTrim = (phone || '').trim();
+  const documentTrim = (document || '').trim();
+  const addr = readCustomerAddressFromBody(req.body);
+  const addrErr = validateStructuredAddress(addr);
+  const addressLine = formatCustomerAddressLine({ ...addr, address: null });
+
   if (!phoneTrim) {
     return res.render('customers/form', {
-      customer: {
-        id,
-        codigo: (req.body.codigo || '').trim() || null,
-        name,
-        nome_fantasia: (req.body.nome_fantasia || '').trim(),
-        phone,
-        email,
-        address,
-        document,
-        notes,
-      },
+      customer: mergeCustomerForForm(req.body, { id }),
       error: 'Informe o telefone.',
     });
   }
-  const documentTrim = (document || '').trim();
   if (!documentTrim) {
     return res.render('customers/form', {
-      customer: {
-        id,
-        codigo: (req.body.codigo || '').trim() || null,
-        name,
-        nome_fantasia: (req.body.nome_fantasia || '').trim(),
-        phone,
-        email,
-        address,
-        document,
-        notes,
-      },
+      customer: mergeCustomerForForm(req.body, { id }),
       error: 'Informe o CPF ou CNPJ.',
+    });
+  }
+  if (addrErr) {
+    return res.render('customers/form', {
+      customer: mergeCustomerForForm(req.body, { id }),
+      error: addrErr,
     });
   }
   const codigo = (req.body.codigo || '').trim() || null;
@@ -621,19 +680,38 @@ app.post('/clientes/:id', (req, res) => {
     if (err) return res.status(500).send('Erro ao atualizar cliente.');
     if (isDuplicate) {
       return res.render('customers/form', {
-        customer: { id, codigo, name, nome_fantasia, phone, email, address, document, notes },
+        customer: mergeCustomerForForm(req.body, { id, document: documentTrim }),
         error: 'Este código já está em uso por outro cliente. Escolha outro ou deixe em branco.',
       });
     }
     const stmt = db.prepare(
-      'UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, document = ?, notes = ?, codigo = ?, nome_fantasia = ? WHERE id = ?'
+      `UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, document = ?, notes = ?, codigo = ?, nome_fantasia = ?,
+        cep = ?, address_street = ?, address_number = ?, address_neighborhood = ?, address_city = ?, address_state = ?
+       WHERE id = ?`
     );
-    stmt.run(name, phoneTrim, email, address, documentTrim, notes, codigo, nome_fantasia, id, (err) => {
-      if (err) {
-        return res.status(500).send('Erro ao atualizar cliente.');
+    stmt.run(
+      name,
+      phoneTrim,
+      email,
+      addressLine,
+      documentTrim,
+      notes,
+      codigo,
+      nome_fantasia,
+      addr.cep,
+      addr.address_street,
+      addr.address_number,
+      addr.address_neighborhood,
+      addr.address_city,
+      addr.address_state,
+      id,
+      (err) => {
+        if (err) {
+          return res.status(500).send('Erro ao atualizar cliente.');
+        }
+        res.redirect('/clientes');
       }
-      res.redirect('/clientes');
-    });
+    );
   });
 });
 

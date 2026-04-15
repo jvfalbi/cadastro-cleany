@@ -9,6 +9,7 @@ if (!fs.existsSync(dataDir)) {
 
 const dbPath = path.join(dataDir, 'database.sqlite');
 const db = new sqlite3.Database(dbPath);
+console.log('[Cleany] Banco de dados:', dbPath);
 
 db.serialize(() => {
   db.run(
@@ -36,6 +37,13 @@ db.serialize(() => {
   });
   db.run('UPDATE customers SET ordem_planilha = id WHERE ordem_planilha IS NULL', (err) => {
     if (err) console.error('backfill ordem_planilha:', err.message);
+  });
+
+  const addrCols = ['cep', 'address_street', 'address_number', 'address_neighborhood', 'address_city', 'address_state'];
+  addrCols.forEach((col) => {
+    db.run(`ALTER TABLE customers ADD COLUMN ${col} TEXT`, (err) => {
+      if (err && !err.message.includes('duplicate')) console.error(`customers.${col}:`, err.message);
+    });
   });
 
   db.run(
