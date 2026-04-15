@@ -708,29 +708,47 @@ table {
   font-size: 0.9rem;
 }
 
-.clientes-sort-toolbar {
+/* Cabeçalho de coluna clicável (ordenar) — clientes */
+.filter-row .th-sort {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-.clientes-sort-label {
-  display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-.clientes-sort-label .th-label {
-  margin: 0;
+  gap: 0.2rem;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 0.35rem;
+  padding: 0.15rem 0.2rem 0.15rem 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-main);
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
 }
-.clientes-sort-toolbar .filter-select {
-  min-width: 12.5rem;
-  max-width: 100%;
+.filter-row .th-sort:hover {
+  color: var(--primary-green, #00a651);
+}
+.filter-row .th-sort:focus-visible {
+  outline: 2px solid var(--primary-green, #00a651);
+  outline-offset: 1px;
+}
+.filter-row .th-sort-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.filter-row .th-sort-dir {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--primary-green, #00a651);
+  line-height: 1;
+}
+.filter-row .th-sort--active .th-sort-text {
+  color: var(--text-main);
 }
 
 .table-clientes {

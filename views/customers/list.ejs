@@ -23,22 +23,6 @@
             </div>
 
             <div class="card">
-              <% if (customers && customers.length) { %>
-              <div class="clientes-sort-toolbar">
-                <label class="clientes-sort-label" for="sort-clientes">
-                  <span class="th-label">Ordenar por</span>
-                  <select id="sort-clientes" class="filter-select" title="Ordem da lista" aria-label="Ordenar lista de clientes">
-                    <option value="codigo-desc" selected>Código (maior primeiro)</option>
-                    <option value="codigo-asc">Código (menor primeiro)</option>
-                    <option value="nome-asc">Nome (A–Z)</option>
-                    <option value="nome-desc">Nome (Z–A)</option>
-                    <option value="cpf-asc">CPF (A–Z)</option>
-                    <option value="celular-asc">Celular (A–Z)</option>
-                    <option value="endereco-asc">Endereço (A–Z)</option>
-                  </select>
-                </label>
-              </div>
-              <% } %>
               <% function esc(v) {
   var s = (v || '').toString().replace(/\0/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
   return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -55,23 +39,33 @@
                 <thead>
                   <tr class="filter-row">
                     <th>
-                      <span class="th-label">Código</span>
+                      <button type="button" class="th-sort" data-sort-col="codigo" aria-label="Ordenar por código">
+                        <span class="th-sort-text">Código</span><span class="th-sort-dir" aria-hidden="true"></span>
+                      </button>
                       <input type="text" id="filter-codigo" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por código" />
                     </th>
                     <th>
-                      <span class="th-label">Nome</span>
+                      <button type="button" class="th-sort" data-sort-col="nome" aria-label="Ordenar por nome">
+                        <span class="th-sort-text">Nome</span><span class="th-sort-dir" aria-hidden="true"></span>
+                      </button>
                       <input type="text" id="filter-nome" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por nome" />
                     </th>
                     <th>
-                      <span class="th-label">CPF</span>
+                      <button type="button" class="th-sort" data-sort-col="cpf" aria-label="Ordenar por CPF">
+                        <span class="th-sort-text">CPF</span><span class="th-sort-dir" aria-hidden="true"></span>
+                      </button>
                       <input type="text" id="filter-cpf" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por CPF" />
                     </th>
                     <th>
-                      <span class="th-label">Celular</span>
+                      <button type="button" class="th-sort" data-sort-col="celular" aria-label="Ordenar por celular">
+                        <span class="th-sort-text">Celular</span><span class="th-sort-dir" aria-hidden="true"></span>
+                      </button>
                       <input type="text" id="filter-celular" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por celular" />
                     </th>
                     <th>
-                      <span class="th-label">Endereço</span>
+                      <button type="button" class="th-sort" data-sort-col="endereco" aria-label="Ordenar por endereço">
+                        <span class="th-sort-text">Endereço</span><span class="th-sort-dir" aria-hidden="true"></span>
+                      </button>
                       <input type="text" id="filter-endereco" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por endereço" />
                     </th>
                     <th class="filter-actions">
@@ -139,8 +133,9 @@
         var filterCelular = document.getElementById('filter-celular');
         var filterEndereco = document.getElementById('filter-endereco');
         var filterClear = document.getElementById('filter-clear');
-        var sortSelect = document.getElementById('sort-clientes');
         var tbody = document.querySelector('.table-clientes tbody');
+        var sortCol = 'codigo';
+        var sortDir = 'desc';
 
         function getDataRows() {
           return Array.prototype.filter.call(rows, function (tr) {
@@ -148,9 +143,22 @@
           });
         }
 
+        function updateSortIndicators() {
+          document.querySelectorAll('.th-sort').forEach(function (btn) {
+            var col = btn.dataset.sortCol;
+            var dirEl = btn.querySelector('.th-sort-dir');
+            var active = sortCol === col;
+            btn.classList.toggle('th-sort--active', active);
+            if (dirEl) {
+              dirEl.textContent = active ? (sortDir === 'asc' ? '↑' : '↓') : '';
+            }
+            btn.setAttribute('aria-sort', active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
+          });
+        }
+
         function sortRows() {
-          if (!sortSelect || !tbody) return;
-          var key = sortSelect.value;
+          if (!tbody) return;
+          var key = sortCol + '-' + sortDir;
           var dataRows = getDataRows();
           if (dataRows.length < 2) return;
 
@@ -187,12 +195,21 @@
               case 'cpf-asc':
                 c = cmp(a, b, 'cpf');
                 return c !== 0 ? c : rowId(a) - rowId(b);
+              case 'cpf-desc':
+                c = cmp(a, b, 'cpf');
+                return c !== 0 ? -c : rowId(b) - rowId(a);
               case 'celular-asc':
                 c = cmp(a, b, 'celular');
                 return c !== 0 ? c : rowId(a) - rowId(b);
+              case 'celular-desc':
+                c = cmp(a, b, 'celular');
+                return c !== 0 ? -c : rowId(b) - rowId(a);
               case 'endereco-asc':
                 c = cmp(a, b, 'endereco');
                 return c !== 0 ? c : rowId(a) - rowId(b);
+              case 'endereco-desc':
+                c = cmp(a, b, 'endereco');
+                return c !== 0 ? -c : rowId(b) - rowId(a);
               default:
                 return 0;
             }
@@ -238,7 +255,22 @@
           if (el) el.addEventListener('input', applyFilters);
         });
         if (filterClear) filterClear.addEventListener('click', clearFilters);
-        if (sortSelect) sortSelect.addEventListener('change', sortRows);
+
+        document.querySelectorAll('.th-sort').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var col = btn.dataset.sortCol;
+            if (!col) return;
+            if (sortCol === col) {
+              sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+              sortCol = col;
+              sortDir = col === 'codigo' ? 'desc' : 'asc';
+            }
+            updateSortIndicators();
+            sortRows();
+          });
+        });
+        updateSortIndicators();
       })();
     </script>
   </body>
