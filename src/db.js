@@ -1,16 +1,63 @@
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const sqlite3 = require('sqlite3').verbose();
 
 /**
- * Em cada deploy (git pull, pasta nova, etc.) o projeto pode vir sem `data/database.sqlite`.
- * O .gitignore não versiona o banco — correto — mas aí um deploy “limpo” cria arquivo NOVO vazio.
- * Em produção use DATA_DIR ou DATABASE_PATH apontando para disco persistente (fora do release), ex.:
- *   DATA_DIR=/var/lib/cleany-data
- *   DATABASE_PATH=/var/lib/cleany-data/database.sqlite
+ * Painéis com PM2 costumam apontar para uma pasta do site que é recriada no deploy/restart:
+ * `projeto/data/database.sqlite` some e nasce um banco vazio — “cadastro sumiu”.
+ *
+ * Prioridade:
+ * 1) DATABASE_PATH ou DATA_DIR no .env (sempre ganham)
+ * 2) CLEANY_USE_PROJECT_DATA=1 → força ./data dentro do projeto (só desenvolvimento)
+ * 3) PM2 (pm_id) ou NODE_ENV=production → pasta fixa FORA do projeto:
+ *    Windows: %USERPROFILE%\.cleany-cadastro-data
+ *    Linux:   ~/.cleany-cadastro-data
+ *    Na 1ª subida, copia database.sqlite e sessions.sqlite do ./data antigo se existirem.
+ * 4) Caso contrário → ./data (desenvolvimento local sem PM2)
  */
 const rawDbFile = process.env.DATABASE_PATH && String(process.env.DATABASE_PATH).trim();
 const rawDataDir = process.env.DATA_DIR && String(process.env.DATA_DIR).trim();
+const forceProjectData = process.env.CLEANY_USE_PROJECT_DATA === '1';
+
+const projectDataDir = path.resolve(path.join(__dirname, '..', 'data'));
+const pm2OrProd =
+  process.env.pm_id != null ||
+  process.env.PM_ID != null ||
+  process.env.NODE_APP_INSTANCE != null ||
+  String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+
+const persistentDefaultDir = path.join(os.homedir(), '.cleany-cadastro-data');
+
+/** Se vamos usar pasta persistente e ainda não há banco lá, copia do ./data do projeto (migração). */
+function migrateFromProjectIfNeeded(targetDataDir) {
+  if (path.resolve(targetDataDir) === projectDataDir) return;
+  const targetDb = path.join(targetDataDir, 'database.sqlite');
+  if (fs.existsSync(targetDb)) return;
+  const legacyDb = path.join(projectDataDir, 'database.sqlite');
+  if (!fs.existsSync(legacyDb)) return;
+  fs.mkdirSync(targetDataDir, { recursive: true });
+  const pairs = [
+    ['database.sqlite', 'database.sqlite'],
+    ['sessions.sqlite', 'sessions.sqlite'],
+  ];
+  try {
+    for (const [name] of pairs) {
+      const from = path.join(projectDataDir, name);
+      const to = path.join(targetDataDir, name);
+      if (!fs.existsSync(from)) continue;
+      fs.copyFileSync(from, to);
+      for (const suf of ['-wal', '-shm']) {
+        const fa = from + suf;
+        const ta = to + suf;
+        if (fs.existsSync(fa) && !fs.existsSync(ta)) fs.copyFileSync(fa, ta);
+      }
+    }
+    console.log('[Cleany] Migração: ./data do projeto →', targetDataDir);
+  } catch (e) {
+    console.error('[Cleany] Migração falhou:', e.message);
+  }
+}
 
 let dataDir;
 let dbPath;
@@ -21,9 +68,21 @@ if (rawDbFile) {
 } else if (rawDataDir) {
   dataDir = path.isAbsolute(rawDataDir) ? rawDataDir : path.resolve(process.cwd(), rawDataDir);
   dbPath = path.join(dataDir, 'database.sqlite');
+} else if (forceProjectData) {
+  dataDir = projectDataDir;
+  dbPath = path.join(dataDir, 'database.sqlite');
+} else if (pm2OrProd) {
+  dataDir = path.resolve(persistentDefaultDir);
+  dbPath = path.join(dataDir, 'database.sqlite');
+  migrateFromProjectIfNeeded(dataDir);
+  console.warn(
+    '[Cleany] PM2/produção: banco em pasta PERSISTENTE fora do site:',
+    dataDir,
+    '(não apaga ao trocar a pasta do projeto no painel.)'
+  );
 } else {
-  dataDir = path.resolve(path.join(__dirname, '..', 'data'));
-  dbPath = path.resolve(path.join(dataDir, 'database.sqlite'));
+  dataDir = projectDataDir;
+  dbPath = path.join(dataDir, 'database.sqlite');
 }
 
 dataDir = path.resolve(dataDir);
