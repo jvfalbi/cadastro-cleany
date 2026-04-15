@@ -793,10 +793,38 @@ app.post('/ordens/:id/status', (req, res) => {
 app.get('/calendario', (req, res) => {
   marcarAtrasadasComoConcluidas(() => {
   const now = new Date();
-  let ano = parseInt(req.query.ano, 10) || now.getFullYear();
-  let mes = parseInt(req.query.mes, 10) || now.getMonth() + 1;
-  if (mes < 1) { mes = 12; ano--; }
-  if (mes > 12) { mes = 1; ano++; }
+  const vista = req.query.vista === 'mes' ? 'mes' : 'semana';
+
+  let ano = parseInt(req.query.ano, 10);
+  let mes = parseInt(req.query.mes, 10);
+  if (!ano || !mes) {
+    ano = now.getFullYear();
+    mes = now.getMonth() + 1;
+  }
+  if (mes < 1) {
+    mes = 12;
+    ano--;
+  }
+  if (mes > 12) {
+    mes = 1;
+    ano++;
+  }
+
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  let refDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const refQ = (req.query.ref && String(req.query.ref).trim()) || '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(refQ)) {
+    const p = refQ.split('-');
+    refDate = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+  }
+  const weekStartD = new Date(refDate);
+  weekStartD.setDate(refDate.getDate() - refDate.getDay());
+  weekStartD.setHours(0, 0, 0, 0);
+
+  function dateKeyFromDate(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
 
   const primeiroDia = new Date(ano, mes - 1, 1);
   const ultimoDia = new Date(ano, mes, 0);
@@ -827,10 +855,91 @@ app.get('/calendario', (req, res) => {
       ordersByDate[dateStr].push(o);
     });
 
+    function parseDueTimeMinutes(t) {
+      if (!t || typeof t !== 'string') return null;
+      const p = String(t).trim().split(':');
+      const h = parseInt(p[0], 10);
+      const m = parseInt(p[1] || '0', 10);
+      if (Number.isNaN(h)) return null;
+      return h * 60 + (Number.isNaN(m) ? 0 : m);
+    }
+
+    function compareOrdersByTime(a, b) {
+      const ta = parseDueTimeMinutes(a.due_time);
+      const tb = parseDueTimeMinutes(b.due_time);
+      if (ta == null && tb == null) return 0;
+      if (ta == null) return 1;
+      if (tb == null) return -1;
+      return ta - tb;
+    }
+
+    Object.keys(ordersByDate).forEach((k) => {
+      ordersByDate[k].sort(compareOrdersByTime);
+    });
+
+    const TL_START = 6;
+    const TL_END = 22;
+    const TL_TOTAL_MIN = (TL_END - TL_START) * 60;
+
+    function orderTimelineStyle(o) {
+      const mins = parseDueTimeMinutes(o.due_time);
+      if (mins == null) {
+        return { topPct: 0.5, heightPct: 4, noTime: true };
+      }
+      let fromStart = mins - TL_START * 60;
+      if (fromStart < 0) fromStart = 0;
+      if (fromStart >= TL_TOTAL_MIN) fromStart = Math.max(0, TL_TOTAL_MIN - 20);
+      return {
+        topPct: (fromStart / TL_TOTAL_MIN) * 100,
+        heightPct: Math.max((30 / TL_TOTAL_MIN) * 100, 3),
+        noTime: false,
+      };
+    }
+
+    const timeSlotLabels = [];
+    for (let h = TL_START; h <= TL_END; h += 1) {
+      timeSlotLabels.push(`${String(h).padStart(2, '0')}:00`);
+      if (h < TL_END) {
+        timeSlotLabels.push(`${String(h).padStart(2, '0')}:30`);
+      }
+    }
+
+    const weekShort = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const weekTimelineDays = [];
+    for (let i = 0; i < 7; i += 1) {
+      const d = new Date(weekStartD);
+      d.setDate(weekStartD.getDate() + i);
+      const y = d.getFullYear();
+      const mo = d.getMonth() + 1;
+      const da = d.getDate();
+      const dateKey = `${y}-${String(mo).padStart(2, '0')}-${String(da).padStart(2, '0')}`;
+      const list = (ordersByDate[dateKey] || []).slice();
+      list.sort(compareOrdersByTime);
+      const orders = list.map((o) => Object.assign({}, o, { timeline: orderTimelineStyle(o) }));
+      weekTimelineDays.push({
+        dateKey,
+        weekday: weekShort[i],
+        dayNum: da,
+        monthNum: mo,
+        isToday: dateKey === todayStr,
+        orders,
+      });
+    }
+
+    const prevWeekStart = new Date(weekStartD);
+    prevWeekStart.setDate(weekStartD.getDate() - 7);
+    const nextWeekStart = new Date(weekStartD);
+    nextWeekStart.setDate(weekStartD.getDate() + 7);
+    const weekPrevLink = `/calendario?vista=semana&ref=${dateKeyFromDate(prevWeekStart)}`;
+    const weekNextLink = `/calendario?vista=semana&ref=${dateKeyFromDate(nextWeekStart)}`;
+    const weekEndD = new Date(weekStartD);
+    weekEndD.setDate(weekStartD.getDate() + 6);
+    const monthShort = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    const weekRangeLabel = `${weekStartD.getDate()} ${monthShort[weekStartD.getMonth()]} – ${weekEndD.getDate()} ${monthShort[weekEndD.getMonth()]} ${weekEndD.getFullYear()}`;
+
     const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const weeks = [];
     const cur = new Date(inicio);
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
     while (cur <= fim) {
       const week = [];
@@ -854,14 +963,30 @@ app.get('/calendario', (req, res) => {
     const nextMes = mes === 12 ? 1 : mes + 1;
     const nextAno = mes === 12 ? ano + 1 : ano;
 
+    const tabMesLink = `/calendario?vista=mes&ano=${ano}&mes=${mes}`;
+    const tabSemanaLink = `/calendario?vista=semana&ref=${dateKeyFromDate(weekStartD)}`;
+    const tabSemanaFromMonthLink = `/calendario?vista=semana&ref=${todayStr}`;
+
     res.render('calendar', {
+      vista,
       monthName: monthNames[mes - 1],
       ano,
       mes,
-      prevLink: `/calendario?ano=${prevAno}&mes=${prevMes}`,
-      nextLink: `/calendario?ano=${nextAno}&mes=${nextMes}`,
+      prevLink: `/calendario?vista=mes&ano=${prevAno}&mes=${prevMes}`,
+      nextLink: `/calendario?vista=mes&ano=${nextAno}&mes=${nextMes}`,
       weeks,
       weekDays: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+      weekTimelineDays,
+      timeSlotLabels,
+      timelineStart: TL_START,
+      timelineEnd: TL_END,
+      weekPrevLink,
+      weekNextLink,
+      weekRangeLabel,
+      tabMesLink,
+      tabSemanaLink,
+      tabSemanaFromMonthLink,
+      tabMesFromWeekLink: `/calendario?vista=mes&ano=${refDate.getFullYear()}&mes=${refDate.getMonth() + 1}`,
     });
   });
   });

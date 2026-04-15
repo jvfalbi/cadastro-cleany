@@ -1257,6 +1257,215 @@ textarea {
   max-width: 100%;
 }
 
+/* Filtro Semanal / Mensal */
+.calendar-view-tabs {
+  display: inline-flex;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+.calendar-view-tab {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-right: 1px solid var(--border-soft);
+}
+.calendar-view-tab:last-child {
+  border-right: none;
+}
+.calendar-view-tab:hover {
+  background: rgba(31, 60, 136, 0.06);
+  color: var(--primary-blue);
+}
+.calendar-view-tab--active {
+  background: rgba(0, 166, 81, 0.12);
+  color: var(--primary-green);
+}
+
+/* Vista semanal — grade de horários */
+.calendar-week-card {
+  padding: 0;
+  overflow: hidden;
+}
+.week-timeline-legend {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-soft);
+  background: linear-gradient(120deg, rgba(0, 166, 81, 0.06), rgba(31, 60, 136, 0.04));
+}
+.week-timeline-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.week-timeline-head {
+  display: grid;
+  grid-template-columns: 3.5rem repeat(7, minmax(4.5rem, 1fr));
+  min-width: 640px;
+  border-bottom: 2px solid var(--border-soft);
+  background: linear-gradient(120deg, rgba(0, 166, 81, 0.08), rgba(31, 60, 136, 0.06));
+}
+.week-timeline-corner {
+  padding: 0.5rem 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  border-right: 1px solid var(--border-soft);
+}
+.week-timeline-dh {
+  position: relative;
+  padding: 0.5rem 0.35rem 0.4rem;
+  text-align: center;
+  border-right: 1px solid var(--border-soft);
+}
+.week-timeline-dh:last-child {
+  border-right: none;
+}
+.week-timeline-dh--today {
+  background: rgba(0, 166, 81, 0.1);
+}
+.week-timeline-dow {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.week-timeline-dm {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+.week-timeline-add-os {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--primary-green);
+  background: #fff;
+  border: 1px solid var(--primary-green);
+  border-radius: 50%;
+  text-decoration: none;
+  line-height: 1;
+}
+.week-timeline-add-os:hover {
+  background: var(--primary-green);
+  color: #fff;
+}
+.week-timeline-main {
+  display: flex;
+  min-width: 640px;
+  min-height: 480px;
+  max-height: min(70vh, 720px);
+}
+.week-timeline-rail {
+  width: 3.5rem;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-soft);
+  display: flex;
+  flex-direction: column;
+  background: #fafbfc;
+}
+.week-timeline-tick {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-right: 0.35rem;
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+.week-timeline-tick span {
+  transform: translateY(-0.35em);
+}
+.week-timeline-cols {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  min-width: 0;
+  gap: 0;
+}
+.week-timeline-col {
+  position: relative;
+  border-right: 1px solid var(--border-soft);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent calc(100% / 33 - 1px),
+    rgba(31, 60, 136, 0.07) calc(100% / 33 - 1px),
+    rgba(31, 60, 136, 0.07) calc(100% / 33)
+  );
+}
+.week-timeline-col:last-child {
+  border-right: none;
+}
+.week-timeline-col--today {
+  background-color: rgba(0, 166, 81, 0.04);
+}
+.week-timeline-event {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  padding: 0.2rem 0.3rem;
+  font-size: 0.68rem;
+  background: rgba(31, 60, 136, 0.12);
+  color: var(--primary-blue);
+  border-radius: 4px;
+  border-left: 3px solid var(--primary-green);
+  text-decoration: none;
+  overflow: hidden;
+  z-index: 1;
+  box-sizing: border-box;
+  min-height: 1.5rem;
+}
+.week-timeline-event:hover {
+  background: rgba(31, 60, 136, 0.2);
+  z-index: 2;
+}
+.week-timeline-event--notime {
+  border-left-color: #94a3b8;
+  opacity: 0.95;
+}
+.week-timeline-event-time {
+  display: block;
+  font-weight: 600;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+.week-timeline-event-title {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+@media (max-width: 1024px) {
+  .page-header--calendar .calendar-view-tabs {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+  .page-header--calendar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 /*
  * Menu gaveta no celular:
  * 1) @media (max-width: 1024px) — funciona sem JS (CSP bloqueando inline, rede, etc.).

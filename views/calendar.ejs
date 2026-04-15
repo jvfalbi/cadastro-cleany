@@ -17,13 +17,81 @@
                 <div class="page-title">Calendário</div>
                 <div class="page-subtitle">Ordens de serviço por data e horário</div>
               </div>
+              <div class="calendar-view-tabs" role="tablist" aria-label="Tipo de calendário">
+                <a
+                  href="<%= vista === 'semana' ? tabSemanaLink : tabSemanaFromMonthLink %>"
+                  class="calendar-view-tab <%= vista === 'semana' ? 'calendar-view-tab--active' : '' %>"
+                  role="tab"
+                  aria-selected="<%= vista === 'semana' ? 'true' : 'false' %>"
+                  >Semanal</a
+                >
+                <a
+                  href="<%= vista === 'semana' ? tabMesFromWeekLink : tabMesLink %>"
+                  class="calendar-view-tab <%= vista === 'mes' ? 'calendar-view-tab--active' : '' %>"
+                  role="tab"
+                  aria-selected="<%= vista === 'mes' ? 'true' : 'false' %>"
+                  >Mensal</a
+                >
+              </div>
+              <% if (vista === 'semana') { %>
+              <div class="calendar-nav">
+                <a href="<%= weekPrevLink %>" class="btn btn-secondary btn-sm" aria-label="Semana anterior">←</a>
+                <span class="calendar-title"><%= weekRangeLabel %></span>
+                <a href="<%= weekNextLink %>" class="btn btn-secondary btn-sm" aria-label="Próxima semana">→</a>
+              </div>
+              <% } else { %>
               <div class="calendar-nav">
                 <a href="<%= prevLink %>" class="btn btn-secondary btn-sm" aria-label="Mês anterior">←</a>
                 <span class="calendar-title"><%= monthName %> <%= ano %></span>
                 <a href="<%= nextLink %>" class="btn btn-secondary btn-sm" aria-label="Próximo mês">→</a>
               </div>
+              <% } %>
               <a href="/ordens/nova" class="btn btn-primary">+ Nova O.S.</a>
             </div>
+
+            <% if (vista === 'semana') { %>
+            <div class="card calendar-week-card">
+              <p class="week-timeline-legend">
+                Grade <strong><%= timelineStart %>:00</strong> às <strong><%= timelineEnd %>:00</strong> (intervalos de 30 min). Clique num dia para nova O.S.
+              </p>
+              <div class="week-timeline-wrap">
+                <div class="week-timeline-head">
+                  <div class="week-timeline-corner" aria-hidden="true">Hora</div>
+                  <% weekTimelineDays.forEach(function (d) { %>
+                  <div class="week-timeline-dh <%= d.isToday ? 'week-timeline-dh--today' : '' %>">
+                    <span class="week-timeline-dow"><%= d.weekday %></span>
+                    <span class="week-timeline-dm"><%= String(d.dayNum).padStart(2, '0') %>/<%= String(d.monthNum).padStart(2, '0') %></span>
+                    <a href="/ordens/nova?data=<%= d.dateKey %>" class="week-timeline-add-os" title="Nova O.S. neste dia">+</a>
+                  </div>
+                  <% }); %>
+                </div>
+                <div class="week-timeline-main">
+                  <div class="week-timeline-rail" aria-hidden="true">
+                    <% timeSlotLabels.forEach(function (tl) { %>
+                    <div class="week-timeline-tick"><span><%= tl %></span></div>
+                    <% }); %>
+                  </div>
+                  <div class="week-timeline-cols">
+                    <% weekTimelineDays.forEach(function (d) { %>
+                    <div class="week-timeline-col <%= d.isToday ? 'week-timeline-col--today' : '' %>">
+                      <% (d.orders || []).forEach(function (o) { %>
+                      <a
+                        href="/ordens/<%= o.id %>"
+                        class="week-timeline-event <%= o.timeline && o.timeline.noTime ? 'week-timeline-event--notime' : '' %>"
+                        style="top: <%= o.timeline ? o.timeline.topPct : 0 %>%; height: <%= o.timeline ? o.timeline.heightPct : 5 %>%;"
+                        title="<%= o.customer_name %> — <%= o.description || '' %>"
+                      >
+                        <span class="week-timeline-event-time"><%= o.due_time || '—' %></span>
+                        <span class="week-timeline-event-title"><%= o.customer_name %></span>
+                      </a>
+                      <% }); %>
+                    </div>
+                    <% }); %>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <% } else { %>
 
             <div class="card calendar-card">
               <div class="calendar-grid">
@@ -52,11 +120,12 @@
                 <% }); %>
               </div>
             </div>
+            <% } %>
           </div>
         </main>
       </div>
-
     </div>
+    <% if (vista === 'mes') { %>
     <script>
       document.querySelectorAll('.calendar-day').forEach(function (cell) {
         cell.addEventListener('click', function (e) {
@@ -71,5 +140,6 @@
         }
       });
     </script>
+    <% } %>
   </body>
 </html>
