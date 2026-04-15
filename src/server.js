@@ -426,7 +426,9 @@ app.get('/', (req, res) => {
 });
 
 app.get('/clientes', (req, res) => {
-  db.all('SELECT * FROM customers ORDER BY id DESC', (err, rows) => {
+  db.all(
+    `SELECT * FROM customers ORDER BY COALESCE(CAST(NULLIF(TRIM(codigo), '') AS INTEGER), -1) DESC, id DESC`,
+    (err, rows) => {
     if (err) {
       return res.status(500).send('Erro ao carregar clientes.');
     }
@@ -750,7 +752,9 @@ app.get('/ordens/nova', (req, res) => {
   const next = (customers, prefillOcupados) => {
     res.render('orders/form', { customers, prefillDate, prefillOcupados: prefillOcupados || [] });
   };
-  db.all('SELECT id, name, codigo FROM customers ORDER BY id DESC', (err, customers) => {
+  db.all(
+    `SELECT id, name, codigo FROM customers ORDER BY COALESCE(CAST(NULLIF(TRIM(codigo), '') AS INTEGER), -1) DESC, id DESC`,
+    (err, customers) => {
     if (err) {
       return res.status(500).send('Erro ao carregar clientes.');
     }
