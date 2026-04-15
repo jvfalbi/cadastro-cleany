@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Usuários do sistema - Cleany</title>
+    <%- include('../partials/head-viewport') %>
+    <%- include('../partials/head-styles') %>
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="layout layout--nav-drawer">
+        <%- include('../partials/navbar') %>
+        <main class="main-content">
+          <div class="container">
+            <div class="page-header">
+              <div>
+                <div class="page-title">Usuários do sistema</div>
+                <div class="page-subtitle">
+                  Crie ou remova logins de acesso ao Cleany. As senhas ficam protegidas no banco de dados.
+                </div>
+              </div>
+            </div>
+
+            <% if (success) { %>
+            <div class="card" style="margin-bottom: 1rem; border-color: var(--primary-green, #2d6a4f); background: rgba(45, 106, 79, 0.08);">
+              <p style="margin: 0;"><%= success %></p>
+            </div>
+            <% } %>
+            <% if (error) { %>
+            <div class="card" style="margin-bottom: 1rem; border-color: #c0392b; background: rgba(192, 57, 43, 0.08);">
+              <p style="margin: 0;"><%= error %></p>
+            </div>
+            <% } %>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <h2 class="page-title" style="font-size: 1.1rem; margin-bottom: 1rem;">Novo usuário</h2>
+              <form method="post" action="/admin/usuarios" class="form-grid">
+                <div>
+                  <label for="nu-username">Usuário</label>
+                  <input type="text" id="nu-username" name="username" required autocomplete="username" />
+                </div>
+                <div>
+                  <label for="nu-password">Senha</label>
+                  <input type="password" id="nu-password" name="password" required autocomplete="new-password" minlength="4" />
+                </div>
+                <div style="align-self: end;">
+                  <button type="submit" class="btn btn-primary">Adicionar usuário</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <h2 class="page-title" style="font-size: 1.1rem; margin-bottom: 1rem;">Usuários cadastrados</h2>
+              <% if (!users || users.length === 0) { %>
+              <p>Nenhum usuário no banco ainda. Na primeira execução o sistema copia as contas do arquivo <code>.env</code> para cá.</p>
+              <% } else { %>
+              <table class="table-clientes">
+                <thead>
+                  <tr>
+                    <th>Usuário</th>
+                    <th>Criado em</th>
+                    <th style="width: 14rem">Nova senha</th>
+                    <th style="width: 6rem"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% users.forEach(function (u) { %>
+                  <tr>
+                    <td><strong><%= u.username %></strong></td>
+                    <td><%= u.created_at || '—' %></td>
+                    <td>
+                      <form method="post" action="/admin/usuarios/<%= u.id %>/senha" class="form-inline" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <input type="password" name="new_password" placeholder="Nova senha" minlength="4" autocomplete="new-password" style="min-width: 8rem;" />
+                        <button type="submit" class="btn btn-secondary btn-sm">Salvar</button>
+                      </form>
+                    </td>
+                    <td>
+                      <% if (users.length > 1) { %>
+                      <form method="post" action="/admin/usuarios/<%= u.id %>/excluir" class="js-confirm-submit" data-confirm-title="Excluir usuário" data-confirm-msg="Remover este usuário? Ele não poderá mais entrar no sistema.">
+                        <button type="submit" class="btn btn-secondary btn-sm" style="color: #c0392b;">Excluir</button>
+                      </form>
+                      <% } else { %>
+                      <span style="color: var(--text-muted, #6b7280);" title="É preciso ter pelo menos um usuário">Único</span>
+                      <% } %>
+                    </td>
+                  </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+              <% } %>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

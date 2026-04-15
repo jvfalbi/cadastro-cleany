@@ -67,6 +67,15 @@ db.serialize(() => {
     )`
   );
 
+  db.run(
+    `CREATE TABLE IF NOT EXISTS app_users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`
+  );
+
   db.get('SELECT COUNT(*) as n FROM services', (err, row) => {
     if (err || !row || row.n > 0) return;
     const defaults = [

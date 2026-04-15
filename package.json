@@ -12,6 +12,7 @@
     "de-para-docs-db": "node scripts/de-para-documentos-db.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "connect-sqlite3": "^0.9.16",
     "dotenv": "^16.6.1",
     "ejs": "^4.0.1",

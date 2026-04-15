@@ -12,6 +12,7 @@ const express = require('express');
 const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
 const db = require('./db');
+const appUsers = require('./app-users');
 
 const app = express();
 
@@ -46,17 +47,7 @@ function cleanEnvCredential(value) {
 let LOGIN_USER = cleanEnvCredential(process.env.LOGIN_USER);
 let LOGIN_PASSWORD = cleanEnvCredential(process.env.LOGIN_PASSWORD);
 
-if (isProd) {
-  if (!LOGIN_USER || !LOGIN_PASSWORD) {
-    console.error('[Cleany] Produção: defina LOGIN_USER e LOGIN_PASSWORD no .env em', ENV_PATH);
-    process.exit(1);
-  }
-  const sec = cleanEnvCredential(process.env.SESSION_SECRET);
-  if (sec.length < 16) {
-    console.error('[Cleany] Produção: SESSION_SECRET no .env com pelo menos 16 caracteres.');
-    process.exit(1);
-  }
-} else {
+if (!isProd) {
   if (process.env.LOCAL_FORCE_DEV_LOGIN === '1') {
     LOGIN_USER = DEV_LOGIN_USER;
     LOGIN_PASSWORD = DEV_LOGIN_PASSWORD;
@@ -80,9 +71,60 @@ if (isProd) {
   }
 }
 
+/** Contas permitidas: LOGIN_USER/LOGIN_PASSWORD + opcional LOGIN_ACCOUNTS_JSON (array de { user, password }). */
+function buildLoginAccountsList() {
+  const list = [];
+  const seen = new Set();
+  const add = (u, p) => {
+    const user = cleanEnvCredential(u);
+    const pass = cleanEnvCredential(p);
+    if (!user || !pass) return;
+    if (seen.has(user)) return;
+    seen.add(user);
+    list.push({ user, password: pass });
+  };
+  add(LOGIN_USER, LOGIN_PASSWORD);
+  const raw = process.env.LOGIN_ACCOUNTS_JSON;
+  if (raw && String(raw).trim()) {
+    try {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        for (const row of arr) {
+          if (row && row.user != null && row.password != null) add(row.user, row.password);
+        }
+      }
+    } catch (e) {
+      console.error('[Cleany] LOGIN_ACCOUNTS_JSON inválido:', e.message);
+      if (isProd) process.exit(1);
+    }
+  }
+  return list;
+}
+
+const loginAccounts = buildLoginAccountsList();
+
+/** Só este usuário vê “Usuários do sistema” e acessa /admin/usuarios. Ajuste ADMIN_USERNAME no .env se precisar (ex.: dev com joaofalbi). */
+const ADMIN_USERNAME = cleanEnvCredential(process.env.ADMIN_USERNAME) || 'jvfalbi';
+
+if (isProd) {
+  const sec = cleanEnvCredential(process.env.SESSION_SECRET);
+  if (sec.length < 16) {
+    console.error('[Cleany] Produção: SESSION_SECRET no .env com pelo menos 16 caracteres.');
+    process.exit(1);
+  }
+}
+
 function requireAuth(req, res, next) {
   if (req.session && req.session.user) return next();
   res.redirect('/login');
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.session || !req.session.user) return res.redirect('/login');
+  if (req.session.user !== ADMIN_USERNAME) {
+    return res.status(403).type('html').send('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Acesso negado</title></head><body><p>Acesso negado. Só o usuário administrador pode gerenciar usuários do sistema.</p><p><a href="/">Voltar ao início</a></p></body></html>');
+  }
+  next();
 }
 
 function marcarAtrasadasComoConcluidas(cb) {
@@ -162,6 +204,7 @@ app.use((req, res, next) => {
     if (d.length >= 12 && d.substring(0, 2) === '55') return 'https://wa.me/' + d;
     return 'https://wa.me/55' + d;
   };
+  res.locals.canManageUsers = !!(req.session && req.session.user && req.session.user === ADMIN_USERNAME);
   next();
 });
 
@@ -173,14 +216,24 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res) => {
   const username = cleanEnvCredential((req.body && req.body.username) || '');
   const password = cleanEnvCredential((req.body && req.body.password) || '');
-  if (username === LOGIN_USER && password === LOGIN_PASSWORD) {
-    req.session.user = username;
-    return res.redirect('/');
-  }
-  if (isProd) {
-    console.warn('[Cleany] Login recusado (verifique LOGIN_USER / LOGIN_PASSWORD no .env na EC2). Usuário tentado:', JSON.stringify(username));
-  }
-  res.render('login', { error: 'Usuário ou senha incorretos.' });
+  appUsers.verifyLogin(username, password, (err, ok) => {
+    if (err) {
+      console.error('[Cleany] Erro ao verificar login:', err.message);
+      return res.render('login', { error: 'Erro ao entrar. Tente de novo.' });
+    }
+    if (ok) {
+      req.session.user = username;
+      return res.redirect('/');
+    }
+    if (isProd) {
+      console.warn(
+        '[Cleany] Login recusado. Usuário tentado:',
+        JSON.stringify(username),
+        '(senhas ficam no banco; crie usuários em /admin/usuarios ou use o .env na 1ª subida)'
+      );
+    }
+    res.render('login', { error: 'Usuário ou senha incorretos.' });
+  });
 });
 
 app.get('/logout', (req, res) => {
@@ -188,6 +241,74 @@ app.get('/logout', (req, res) => {
 });
 
 app.use(requireAuth);
+
+app.get('/admin/usuarios', requireAdmin, (req, res) => {
+  const q = req.query || {};
+  let success = null;
+  if (q.ok === 'criado') success = 'Usuário criado.';
+  else if (q.ok === 'excluido') success = 'Usuário removido.';
+  else if (q.ok === 'senha') success = 'Senha atualizada.';
+  appUsers.listUsers((err, users) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send('Erro ao listar usuários.');
+    }
+    res.render('admin/users', {
+      users: users || [],
+      error: q.erro ? String(q.erro) : null,
+      success,
+    });
+  });
+});
+
+app.post('/admin/usuarios', requireAdmin, (req, res) => {
+  const username = cleanEnvCredential((req.body && req.body.username) || '');
+  const password = cleanEnvCredential((req.body && req.body.password) || '');
+  if (!username || !password) {
+    return res.redirect('/admin/usuarios?erro=' + encodeURIComponent('Preencha usuário e senha.'));
+  }
+  if (password.length < 4) {
+    return res.redirect('/admin/usuarios?erro=' + encodeURIComponent('Senha muito curta (mín. 4 caracteres).'));
+  }
+  appUsers.createUser(username, password, (err) => {
+    if (err) {
+      const msg =
+        err.message && err.message.includes('UNIQUE')
+          ? 'Já existe um usuário com esse nome.'
+          : 'Não foi possível criar o usuário.';
+      return res.redirect('/admin/usuarios?erro=' + encodeURIComponent(msg));
+    }
+    res.redirect('/admin/usuarios?ok=criado');
+  });
+});
+
+app.post('/admin/usuarios/:id/excluir', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id) return res.redirect('/admin/usuarios?erro=' + encodeURIComponent('ID inválido.'));
+  appUsers.deleteUser(id, (err) => {
+    if (err) {
+      return res.redirect('/admin/usuarios?erro=' + encodeURIComponent(err.message || 'Erro ao excluir.'));
+    }
+    res.redirect('/admin/usuarios?ok=excluido');
+  });
+});
+
+app.post('/admin/usuarios/:id/senha', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const newPassword = cleanEnvCredential((req.body && req.body.new_password) || '');
+  if (!id || !newPassword) {
+    return res.redirect('/admin/usuarios?erro=' + encodeURIComponent('Informe a nova senha.'));
+  }
+  if (newPassword.length < 4) {
+    return res.redirect('/admin/usuarios?erro=' + encodeURIComponent('Senha muito curta (mín. 4 caracteres).'));
+  }
+  appUsers.updatePassword(id, newPassword, (err) => {
+    if (err) {
+      return res.redirect('/admin/usuarios?erro=' + encodeURIComponent(err.message || 'Erro ao alterar senha.'));
+    }
+    res.redirect('/admin/usuarios?ok=senha');
+  });
+});
 
 app.get('/', (req, res) => {
   marcarAtrasadasComoConcluidas(() => {
@@ -779,16 +900,46 @@ app.get('/financeiro', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  const mode = isProd ? 'produção' : 'desenvolvimento';
-  const publicHint = BASE_URL_CONFIGURED || `http://127.0.0.1:${PORT} (defina BASE_URL no .env com o domínio público)`;
-  console.log(
-    `[Cleany] NODE_ENV="${rawNodeEnv || '(vazio)'}" → ${mode} | URL: ${publicHint} | usuário login: ${LOGIN_USER}`
-  );
-  if (!isProd && process.env.PM2_HOME) {
-    console.warn(
-      '[Cleany] PM2 sem NODE_ENV=production — login/cookies usam modo desenvolvimento. Corrija: `pm2 start ecosystem.config.cjs` ou acrescente NODE_ENV=production no .env da EC2.'
+function startServer() {
+  app.listen(PORT, () => {
+    const mode = isProd ? 'produção' : 'desenvolvimento';
+    const publicHint = BASE_URL_CONFIGURED || `http://127.0.0.1:${PORT} (defina BASE_URL no .env com o domínio público)`;
+    console.log(
+      `[Cleany] NODE_ENV="${rawNodeEnv || '(vazio)'}" → ${mode} | URL: ${publicHint} | usuários: banco SQLite + /admin/usuarios`
     );
-  }
-});
+    if (loginAccounts.length > 0) {
+      console.log('[Cleany] Contas usadas na 1ª carga (seed do .env):', loginAccounts.map((a) => a.user).join(', '));
+    }
+    if (!isProd && process.env.PM2_HOME) {
+      console.warn(
+        '[Cleany] PM2 sem NODE_ENV=production — login/cookies usam modo desenvolvimento. Corrija: `pm2 start ecosystem.config.cjs` ou acrescente NODE_ENV=production no .env da EC2.'
+      );
+    }
+  });
+}
+
+function bootstrapAndListen() {
+  appUsers.countUsers((err, n) => {
+    if (err) {
+      console.error('[Cleany]', err.message);
+      process.exit(1);
+    }
+    if (isProd && n === 0 && loginAccounts.length === 0) {
+      console.error(
+        '[Cleany] Produção: o banco não tem usuários e o .env não definiu LOGIN_* / LOGIN_ACCOUNTS_JSON. Defina pelo menos uma conta em',
+        ENV_PATH
+      );
+      process.exit(1);
+    }
+    appUsers.seedFromAccountsIfEmpty(loginAccounts, (seedErr) => {
+      if (seedErr) {
+        console.error('[Cleany] Erro ao criar usuários iniciais:', seedErr.message);
+        process.exit(1);
+      }
+      startServer();
+    });
+  });
+}
+
+bootstrapAndListen();
 
