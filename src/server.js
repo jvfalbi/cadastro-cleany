@@ -425,9 +425,13 @@ app.get('/', (req, res) => {
   });
 });
 
+/** Código como inteiro: remove milhar (4.806→4806). CAST direto em "4.806" no SQLite vira 4 e quebra a ordem. */
+const SQL_ORDER_CUSTOMERS_BY_CODIGO_NUM =
+  "COALESCE(CAST(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(IFNULL(codigo,'')), char(9), ''), char(13), ''), char(160), ''), '.', ''), ',', ''), ' ', '') AS INTEGER), -1) DESC, id DESC";
+
 app.get('/clientes', (req, res) => {
   db.all(
-    `SELECT * FROM customers ORDER BY COALESCE(CAST(NULLIF(TRIM(codigo), '') AS INTEGER), -1) DESC, id DESC`,
+    `SELECT * FROM customers ORDER BY ${SQL_ORDER_CUSTOMERS_BY_CODIGO_NUM}`,
     (err, rows) => {
     if (err) {
       return res.status(500).send('Erro ao carregar clientes.');
@@ -753,7 +757,7 @@ app.get('/ordens/nova', (req, res) => {
     res.render('orders/form', { customers, prefillDate, prefillOcupados: prefillOcupados || [] });
   };
   db.all(
-    `SELECT id, name, codigo FROM customers ORDER BY COALESCE(CAST(NULLIF(TRIM(codigo), '') AS INTEGER), -1) DESC, id DESC`,
+    `SELECT id, name, codigo FROM customers ORDER BY ${SQL_ORDER_CUSTOMERS_BY_CODIGO_NUM}`,
     (err, customers) => {
     if (err) {
       return res.status(500).send('Erro ao carregar clientes.');
