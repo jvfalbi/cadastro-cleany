@@ -22,9 +22,12 @@ if (rawDbFile) {
   dataDir = path.isAbsolute(rawDataDir) ? rawDataDir : path.resolve(process.cwd(), rawDataDir);
   dbPath = path.join(dataDir, 'database.sqlite');
 } else {
-  dataDir = path.join(__dirname, '..', 'data');
-  dbPath = path.join(dataDir, 'database.sqlite');
+  dataDir = path.resolve(path.join(__dirname, '..', 'data'));
+  dbPath = path.resolve(path.join(dataDir, 'database.sqlite'));
 }
+
+dataDir = path.resolve(dataDir);
+dbPath = path.resolve(dbPath);
 
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
@@ -33,10 +36,14 @@ if (!fs.existsSync(dataDir)) {
 const db = new sqlite3.Database(dbPath);
 db.dataDir = dataDir;
 db.dbPath = dbPath;
+db.configure('busyTimeout', 10000);
 console.log('[Cleany] Pasta de dados (sessões + SQLite):', dataDir);
 console.log('[Cleany] Arquivo principal do banco:', dbPath);
 
 db.serialize(() => {
+  db.run('PRAGMA journal_mode=WAL');
+  db.run('PRAGMA synchronous=NORMAL');
+  db.run('PRAGMA foreign_keys=ON');
   db.run(
     `CREATE TABLE IF NOT EXISTS customers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,7 +128,31 @@ db.serialize(() => {
     defaults.forEach(([name, description, price]) => stmt.run(name, description, price));
     stmt.finalize();
   });
+
+  db.get('SELECT COUNT(*) as n FROM customers', (err, row) => {
+    if (err) console.error('[Cleany] Contagem de clientes:', err.message);
+    else console.log('[Cleany] Clientes neste arquivo SQLite:', row ? row.n : '?');
+    try {
+      const st = fs.statSync(dbPath);
+      console.log('[Cleany] Tamanho database.sqlite:', st.size, 'bytes');
+    } catch (e) {
+      console.warn('[Cleany] stat database:', e.message);
+    }
+  });
 });
+
+function shutdownDb(signal) {
+  console.warn('[Cleany] Encerrando (' + signal + '): fechando SQLite com segurança…');
+  db.run('PRAGMA wal_checkpoint(TRUNCATE)', (err) => {
+    if (err) console.error('[Cleany] wal_checkpoint:', err.message);
+    db.close((err2) => {
+      if (err2) console.error('[Cleany] Erro ao fechar banco:', err2.message);
+      process.exit(err2 ? 1 : 0);
+    });
+  });
+}
+process.once('SIGINT', () => shutdownDb('SIGINT'));
+process.once('SIGTERM', () => shutdownDb('SIGTERM'));
 
 module.exports = db;
 

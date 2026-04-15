@@ -5,6 +5,7 @@ module.exports = {
       name: 'cadastro-cleany',
       script: 'src/server.js',
       cwd: __dirname,
+      // SQLite: use só 1 instância (várias processos no mesmo .sqlite corrompe / perde dados).
       instances: 1,
       autorestart: true,
       watch: false,
