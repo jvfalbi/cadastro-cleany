@@ -103,8 +103,8 @@ function buildLoginAccountsList() {
 
 const loginAccounts = buildLoginAccountsList();
 
-/** Só este usuário vê “Usuários do sistema” e acessa /admin/usuarios. Ajuste ADMIN_USERNAME no .env se precisar (ex.: dev com joaofalbi). */
-const ADMIN_USERNAME = cleanEnvCredential(process.env.ADMIN_USERNAME) || 'jvfalbi';
+/** Só este usuário vê “Usuários do sistema” e acessa /admin/usuarios. Em produção use ADMIN_USERNAME=... se o administrador não for o mesmo login principal (DEV_LOGIN_USER / seed). */
+const ADMIN_USERNAME = cleanEnvCredential(process.env.ADMIN_USERNAME) || DEV_LOGIN_USER;
 
 if (isProd) {
   const sec = cleanEnvCredential(process.env.SESSION_SECRET);
