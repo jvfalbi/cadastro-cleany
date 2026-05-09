@@ -143,6 +143,7 @@ function readCustomerAddressFromBody(body) {
     address_street: String(body.address_street || '').trim(),
     address_number: String(body.address_number || '').trim(),
     address_neighborhood: String(body.address_neighborhood || '').trim() || null,
+    address_complement: String(body.address_complement || '').trim() || null,
     address_city: String(body.address_city || '').trim(),
     address_state: ufRaw || null,
   };
@@ -158,6 +159,7 @@ function validateStructuredAddress(addr) {
 function formatCustomerAddressLine(row) {
   const rua = (row.address_street || '').trim();
   const num = (row.address_number || '').trim();
+  const compl = (row.address_complement || '').trim();
   const bairro = (row.address_neighborhood || '').trim();
   const cidade = (row.address_city || '').trim();
   const uf = (row.address_state || '').trim();
@@ -168,6 +170,7 @@ function formatCustomerAddressLine(row) {
   if (rua || num) {
     let line = rua;
     if (num) line += (line ? ', ' : '') + 'nº ' + num;
+    if (compl) line += ' — ' + compl;
     if (line.trim()) parts.push(line.trim());
   }
   if (bairro) parts.push(bairro);
@@ -187,6 +190,7 @@ function mergeCustomerForForm(body, extra = {}) {
     codigo: (body.codigo || '').trim() || null,
     name: body.name,
     nome_fantasia: (body.nome_fantasia || '').trim() || null,
+    inscricao_estadual: (body.inscricao_estadual || '').trim() || null,
     phone: body.phone,
     email: body.email,
     document: body.document,
@@ -525,6 +529,7 @@ app.post('/clientes', (req, res) => {
   const codigoInput = (req.body.codigo || '').trim() || null;
   const documentTrim = (document || '').trim();
   const nome_fantasia = (req.body.nome_fantasia || '').trim() || null;
+  const inscricao_estadual = (req.body.inscricao_estadual || '').trim() || null;
   const addr = readCustomerAddressFromBody(req.body);
   const addrErr = validateStructuredAddress(addr);
 
@@ -564,8 +569,8 @@ app.post('/clientes', (req, res) => {
 
   function insertCliente(ordem, codigoFinal) {
     db.run(
-      `INSERT INTO customers (name, phone, email, address, document, notes, ordem_planilha, codigo, nome_fantasia, cep, address_street, address_number, address_neighborhood, address_city, address_state)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO customers (name, phone, email, address, document, notes, ordem_planilha, codigo, nome_fantasia, inscricao_estadual, cep, address_street, address_number, address_complement, address_neighborhood, address_city, address_state)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name,
         phoneTrim,
@@ -576,9 +581,11 @@ app.post('/clientes', (req, res) => {
         ordem,
         codigoFinal,
         nome_fantasia,
+        inscricao_estadual,
         addr.cep,
         addr.address_street,
         addr.address_number,
+        addr.address_complement,
         addr.address_neighborhood,
         addr.address_city,
         addr.address_state,
@@ -654,6 +661,7 @@ app.post('/clientes/:id', (req, res) => {
   const { name, phone, email, document, notes } = req.body;
   const phoneTrim = (phone || '').trim();
   const documentTrim = (document || '').trim();
+  const inscricao_estadual = (req.body.inscricao_estadual || '').trim() || null;
   const addr = readCustomerAddressFromBody(req.body);
   const addrErr = validateStructuredAddress(addr);
   const addressLine = formatCustomerAddressLine({ ...addr, address: null });
@@ -698,8 +706,8 @@ app.post('/clientes/:id', (req, res) => {
       });
     }
     const stmt = db.prepare(
-      `UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, document = ?, notes = ?, codigo = ?, nome_fantasia = ?,
-        cep = ?, address_street = ?, address_number = ?, address_neighborhood = ?, address_city = ?, address_state = ?
+      `UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, document = ?, notes = ?, codigo = ?, nome_fantasia = ?, inscricao_estadual = ?,
+        cep = ?, address_street = ?, address_number = ?, address_complement = ?, address_neighborhood = ?, address_city = ?, address_state = ?
        WHERE id = ?`
     );
     stmt.run(
@@ -711,9 +719,11 @@ app.post('/clientes/:id', (req, res) => {
       notes,
       codigo,
       nome_fantasia,
+      inscricao_estadual,
       addr.cep,
       addr.address_street,
       addr.address_number,
+      addr.address_complement,
       addr.address_neighborhood,
       addr.address_city,
       addr.address_state,

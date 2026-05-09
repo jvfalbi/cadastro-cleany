@@ -130,7 +130,7 @@ db.serialize(() => {
     if (err) console.error('backfill ordem_planilha:', err.message);
   });
 
-  const addrCols = ['cep', 'address_street', 'address_number', 'address_neighborhood', 'address_city', 'address_state'];
+  const addrCols = ['cep', 'address_street', 'address_number', 'address_neighborhood', 'address_city', 'address_state', 'address_complement', 'inscricao_estadual'];
   addrCols.forEach((col) => {
     db.run(`ALTER TABLE customers ADD COLUMN ${col} TEXT`, (err) => {
       if (err && !err.message.includes('duplicate')) console.error(`customers.${col}:`, err.message);

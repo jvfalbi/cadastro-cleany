@@ -105,6 +105,17 @@
                     />
                   </div>
 
+                  <div class="form-group">
+                    <label for="inscricao_estadual">Inscrição Estadual (I.E.)</label>
+                    <input
+                      type="text"
+                      id="inscricao_estadual"
+                      name="inscricao_estadual"
+                      value="<%= customer && customer.inscricao_estadual ? customer.inscricao_estadual : '' %>"
+                      placeholder="Opcional"
+                    />
+                  </div>
+
                   <div class="form-group form-section-address" style="grid-column: 1 / -1">
                     <div class="form-section-title">Endereço</div>
                     <% var _hasLegacy = customer && customer.address && !customer.address_street && !customer.address_city; %>
@@ -153,6 +164,16 @@
                           value="<%= customer && customer.address_number ? customer.address_number : '' %>"
                           placeholder="Ex.: 123 ou S/N"
                           inputmode="numeric"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label for="address_complement">Complemento</label>
+                        <input
+                          type="text"
+                          id="address_complement"
+                          name="address_complement"
+                          value="<%= customer && customer.address_complement ? customer.address_complement : '' %>"
+                          placeholder="Apto, bloco, sala... (opcional)"
                         />
                       </div>
                       <div class="form-group">
