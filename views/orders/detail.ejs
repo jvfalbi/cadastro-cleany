@@ -6,18 +6,178 @@
     <%- include('../partials/head-viewport') %>
     <%- include('../partials/head-styles') %>
     <style>
-      .print-logo { display: none; }
+      /* ---- Tela: oculta as vias, mostra card normal ---- */
+      .os-print-area { display: none; }
+
       @media print {
-        .print-logo { display: block !important; text-align: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #333; }
-        .print-logo img { max-height: 56px; width: auto; }
-        .sidebar, .footer, .no-print { display: none !important; }
-        .layout { display: block; }
-        .main-content { padding: 0; }
-        .container { max-width: 100%; }
-        .card { box-shadow: none; border: 1px solid #ccc; overflow: visible !important; }
-        body { background: #fff; }
-        .page-header { margin-bottom: 1rem; }
-        .detail-grid { break-inside: avoid; page-break-inside: avoid; }
+        @page { size: A4 portrait; margin: 8mm 10mm; }
+        html, body { background: #fff !important; font-size: 11px; color: #111; }
+        .sidebar, .footer, .no-print, .mobile-topbar { display: none !important; }
+        .layout { display: block !important; }
+        .main-content { padding: 0 !important; }
+        .container { max-width: 100% !important; padding: 0 !important; }
+        .card, .page-header { display: none !important; }
+        .os-print-area { display: block !important; }
+
+        /* ---- Via de impressão ---- */
+        .os-via {
+          width: 100%;
+          border: 1.5px solid #111;
+          border-radius: 4px;
+          padding: 6mm 5mm 5mm;
+          page-break-inside: avoid;
+          break-inside: avoid;
+          margin-bottom: 5mm;
+          position: relative;
+        }
+        .os-via + .os-via { margin-top: 2mm; }
+
+        /* Destaque "Via" no canto */
+        .os-via-label {
+          position: absolute;
+          top: 0; right: 0;
+          background: #111;
+          color: #fff;
+          font-weight: 700;
+          font-size: 8.5px;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+          padding: 2px 10px 2.5px;
+          border-radius: 0 3px 0 6px;
+        }
+
+        .os-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 4mm;
+          margin-bottom: 3.5mm;
+          padding-bottom: 3mm;
+          border-bottom: 1.5px solid #111;
+        }
+        .os-header-logo img { max-height: 44px; width: auto; }
+        .os-header-info { flex: 1; }
+        .os-header-empresa {
+          font-size: 13px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          margin-bottom: 1px;
+        }
+        .os-header-sub {
+          font-size: 8.5px;
+          color: #444;
+          line-height: 1.45;
+        }
+        .os-header-num {
+          text-align: right;
+          white-space: nowrap;
+        }
+        .os-header-num-big {
+          font-size: 18px;
+          font-weight: 800;
+          letter-spacing: -0.01em;
+          line-height: 1.15;
+        }
+        .os-header-num-label {
+          font-size: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #555;
+        }
+        .os-header-status {
+          display: inline-block;
+          font-size: 8.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          padding: 1.5px 7px;
+          border: 1px solid #111;
+          border-radius: 3px;
+          margin-top: 2px;
+        }
+
+        /* Seções */
+        .os-section {
+          margin-bottom: 2.5mm;
+        }
+        .os-section-title {
+          font-size: 8px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          background: #eee;
+          padding: 1.5px 4px;
+          margin-bottom: 2px;
+          border-left: 3px solid #111;
+        }
+
+        /* Grid de dados */
+        .os-data-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1mm 3mm;
+        }
+        .os-data-grid--2 { grid-template-columns: repeat(2, 1fr); }
+        .os-data-grid--full { grid-template-columns: 1fr; }
+
+        .os-field {}
+        .os-field-label {
+          font-size: 7.5px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #666;
+          margin-bottom: 0.5px;
+        }
+        .os-field-value {
+          font-size: 10px;
+          font-weight: 600;
+          word-break: break-word;
+        }
+        .os-field-value--big {
+          font-size: 11.5px;
+          font-weight: 700;
+        }
+        .os-field-value--address {
+          font-size: 9.5px;
+          font-weight: 500;
+          line-height: 1.4;
+        }
+
+        /* Descrição */
+        .os-desc {
+          font-size: 9.5px;
+          line-height: 1.45;
+          white-space: pre-line;
+          word-break: break-word;
+          min-height: 10mm;
+          padding: 2px 0;
+        }
+
+        /* Assinatura */
+        .os-signatures {
+          display: flex;
+          justify-content: space-between;
+          gap: 10mm;
+          margin-top: 4mm;
+          padding-top: 2mm;
+        }
+        .os-sig-block {
+          flex: 1;
+          text-align: center;
+        }
+        .os-sig-line {
+          border-top: 1px solid #333;
+          margin-top: 12mm;
+          padding-top: 2px;
+          font-size: 8px;
+          color: #555;
+        }
+
+        /* Cortar */
+        .os-cut-line {
+          border: none;
+          border-top: 1px dashed #999;
+          margin: 2mm 0 1mm;
+        }
       }
     </style>
   </head>
@@ -27,26 +187,24 @@
         <%- include('../partials/navbar') %>
         <main class="main-content">
           <div class="container">
-            <div class="print-logo">
-              <img src="/img/logocleany.png" alt="Cleany - Trituradores de Resíduos" />
-            </div>
-            <div class="page-header">
+            <div class="page-header no-print">
               <div>
                 <div class="page-title">
                   Ordem de serviço #<%= order.id %>
                 </div>
                 <div class="page-subtitle">
                   <%= order.customer_name %>
-                  <span class="no-print"> &mdash; <%= new Date(order.created_at).toLocaleString('pt-BR') %></span>
+                  <span> &mdash; <%= new Date(order.created_at).toLocaleString('pt-BR') %></span>
                 </div>
               </div>
-              <div class="btn-group no-print">
+              <div class="btn-group">
                 <button type="button" class="btn btn-primary" onclick="window.print();">Imprimir O.S.</button>
                 <a href="/ordens" class="btn btn-secondary">Voltar para lista</a>
               </div>
             </div>
 
-            <div class="card">
+            <!-- ========== Card na tela (não imprime) ========== -->
+            <div class="card no-print">
               <div class="card-header">
                 <div class="card-title">Resumo da O.S.</div>
                 <div>
@@ -67,7 +225,15 @@
               <div class="detail-grid">
                 <div>
                   <div class="detail-label">Cliente</div>
-                  <div class="detail-value"><%= order.customer_name %></div>
+                  <div class="detail-value"><%= order.customer_name %><% if (order.nome_fantasia) { %> <span style="color:var(--text-muted);font-weight:400">(<%= order.nome_fantasia %>)</span><% } %></div>
+                </div>
+                <div>
+                  <div class="detail-label">Código</div>
+                  <div class="detail-value"><%= order.customer_codigo || '-' %></div>
+                </div>
+                <div>
+                  <div class="detail-label">CPF/CNPJ</div>
+                  <div class="detail-value"><%= order.document || '-' %></div>
                 </div>
                 <div>
                   <div class="detail-label">Telefone</div>
@@ -80,9 +246,9 @@
                   <div class="detail-label">E-mail</div>
                   <div class="detail-value"><%= order.email || '-' %></div>
                 </div>
-                <div>
-                  <div class="detail-label">Endereço</div>
-                  <div class="detail-value"><%= order.address || '-' %></div>
+                <div style="grid-column: 1 / -1">
+                  <div class="detail-label">Endereço completo</div>
+                  <div class="detail-value"><%= order.address_full || '-' %></div>
                 </div>
                 <div>
                   <div class="detail-label">Valor estimado</div>
@@ -111,7 +277,7 @@
                 <div style="grid-column: 1 / -1">
                   <div class="detail-label">Data e horário previstos</div>
                   <div class="detail-value">
-                    <% 
+                    <%
                       var hm = order.due_time && String(order.due_time).trim() ? String(order.due_time).trim().slice(0, 5) : '';
                       if (order.due_date) {
                     %>
@@ -121,13 +287,13 @@
                     <% } %>
                   </div>
                 </div>
-                <div class="no-print">
+                <div>
                   <div class="detail-label">Criada em</div>
                   <div class="detail-value">
                     <%= new Date(order.created_at).toLocaleString('pt-BR') %>
                   </div>
                 </div>
-                <div class="no-print">
+                <div>
                   <div class="detail-label">Última atualização</div>
                   <div class="detail-value">
                     <%= new Date(order.updated_at).toLocaleString('pt-BR') %>
@@ -150,35 +316,12 @@
                   <div class="form-group">
                     <label for="status">Status</label>
                     <select id="status" name="status">
-                      <option
-                        value="Aberta"
-                        <%= order.status === 'Aberta' ? 'selected' : '' %>
-                      >
-                        Aberta
-                      </option>
-                      <option
-                        value="Em andamento"
-                        <%=
-                          order.status === 'Em andamento' ? 'selected' : ''
-                        %>
-                      >
-                        Em andamento
-                      </option>
-                      <option
-                        value="Concluída"
-                        <%= order.status === 'Concluída' ? 'selected' : '' %>
-                      >
-                        Concluída
-                      </option>
-                      <option
-                        value="Cancelada"
-                        <%= order.status === 'Cancelada' ? 'selected' : '' %>
-                      >
-                        Cancelada
-                      </option>
+                      <option value="Aberta" <%= order.status === 'Aberta' ? 'selected' : '' %>>Aberta</option>
+                      <option value="Em andamento" <%= order.status === 'Em andamento' ? 'selected' : '' %>>Em andamento</option>
+                      <option value="Concluída" <%= order.status === 'Concluída' ? 'selected' : '' %>>Concluída</option>
+                      <option value="Cancelada" <%= order.status === 'Cancelada' ? 'selected' : '' %>>Cancelada</option>
                     </select>
                   </div>
-
                   <div class="form-group">
                     <label for="price_final">Valor final (R$)</label>
                     <input
@@ -191,25 +334,131 @@
                     />
                   </div>
                 </div>
-
                 <div class="form-actions">
                   <div class="btn-group">
-                    <button type="submit" class="btn btn-primary">
-                      Salvar atualização
-                    </button>
+                    <button type="submit" class="btn btn-primary">Salvar atualização</button>
                   </div>
                   <div class="hint">
-                    Use este espaço para marcar quando o serviço foi concluído e
-                    registrar o valor final.
+                    Use este espaço para marcar quando o serviço foi concluído e registrar o valor final.
                   </div>
                 </div>
               </form>
             </div>
+
+            <!-- ========== 3 vias para impressão ========== -->
+            <%
+              var _hm = order.due_time && String(order.due_time).trim() ? String(order.due_time).trim().slice(0, 5) : '';
+              var _dataPrev = '';
+              if (order.due_date) {
+                _dataPrev = new Date(order.due_date + 'T12:00:00').toLocaleDateString('pt-BR');
+                if (_hm) _dataPrev += ' às ' + _hm;
+              } else if (_hm) {
+                _dataPrev = _hm;
+              }
+              var _valEst = order.price_estimate != null
+                ? 'R$ ' + Number(order.price_estimate).toFixed(2).replace('.', ',')
+                : '—';
+              var _valFin = order.price_final != null
+                ? 'R$ ' + Number(order.price_final).toFixed(2).replace('.', ',')
+                : '—';
+              var _vias = ['Gerente', 'Funcionário', 'Cliente'];
+            %>
+            <div class="os-print-area">
+              <% _vias.forEach(function(via, idx) { %>
+              <% if (idx > 0) { %><hr class="os-cut-line" /><% } %>
+              <div class="os-via">
+                <div class="os-via-label">Via — <%= via %></div>
+                <div class="os-header">
+                  <div class="os-header-logo">
+                    <img src="/img/logocleany.png" alt="Cleany" />
+                  </div>
+                  <div class="os-header-info">
+                    <div class="os-header-empresa">Cleany — Trituradores de Resíduos</div>
+                    <div class="os-header-sub">Ordem de Serviço</div>
+                  </div>
+                  <div class="os-header-num">
+                    <div class="os-header-num-label">Nº da O.S.</div>
+                    <div class="os-header-num-big"><%= order.id %></div>
+                    <div class="os-header-status"><%= order.status %></div>
+                  </div>
+                </div>
+
+                <div class="os-section">
+                  <div class="os-section-title">Dados do cliente</div>
+                  <div class="os-data-grid">
+                    <div class="os-field">
+                      <div class="os-field-label">Cliente</div>
+                      <div class="os-field-value os-field-value--big"><%= order.customer_name %></div>
+                    </div>
+                    <div class="os-field">
+                      <div class="os-field-label">Código</div>
+                      <div class="os-field-value"><%= order.customer_codigo || '—' %></div>
+                    </div>
+                    <div class="os-field">
+                      <div class="os-field-label">CPF / CNPJ</div>
+                      <div class="os-field-value"><%= order.document || '—' %></div>
+                    </div>
+                    <div class="os-field">
+                      <div class="os-field-label">Telefone</div>
+                      <div class="os-field-value"><%= order.phone || '—' %></div>
+                    </div>
+                    <div class="os-field">
+                      <div class="os-field-label">E-mail</div>
+                      <div class="os-field-value"><%= order.email || '—' %></div>
+                    </div>
+                    <% if (order.nome_fantasia) { %>
+                    <div class="os-field">
+                      <div class="os-field-label">Nome fantasia</div>
+                      <div class="os-field-value"><%= order.nome_fantasia %></div>
+                    </div>
+                    <% } %>
+                  </div>
+                  <div class="os-data-grid os-data-grid--full" style="margin-top:1.5mm">
+                    <div class="os-field">
+                      <div class="os-field-label">Endereço completo</div>
+                      <div class="os-field-value os-field-value--address"><%= order.address_full || order.address || '—' %></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="os-section">
+                  <div class="os-section-title">Dados do serviço</div>
+                  <div class="os-data-grid">
+                    <div class="os-field">
+                      <div class="os-field-label">Data / horário previsto</div>
+                      <div class="os-field-value"><%= _dataPrev || '—' %></div>
+                    </div>
+                    <div class="os-field">
+                      <div class="os-field-label">Valor estimado</div>
+                      <div class="os-field-value"><%= _valEst %></div>
+                    </div>
+                    <div class="os-field">
+                      <div class="os-field-label">Valor final</div>
+                      <div class="os-field-value"><%= _valFin %></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="os-section">
+                  <div class="os-section-title">Descrição do serviço</div>
+                  <div class="os-desc"><%= order.description %></div>
+                </div>
+
+                <div class="os-signatures">
+                  <div class="os-sig-block">
+                    <div class="os-sig-line">Assinatura do cliente</div>
+                  </div>
+                  <div class="os-sig-block">
+                    <div class="os-sig-line">Assinatura do responsável</div>
+                  </div>
+                </div>
+              </div>
+              <% }); %>
+            </div>
+
           </div>
         </main>
       </div>
-
     </div>
   </body>
 </html>
-
