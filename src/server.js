@@ -912,7 +912,7 @@ app.get('/ordens/:id', (req, res) => {
       COALESCE(NULLIF(TRIM(c.name), ''), '(Cliente removido)') AS customer_name,
       c.phone, c.email, c.address, c.document,
       c.codigo AS customer_codigo, c.nome_fantasia,
-      c.cep, c.address_street, c.address_number,
+      c.cep, c.address_street, c.address_number, c.address_complement,
       c.address_neighborhood, c.address_city, c.address_state
     FROM service_orders so
     LEFT JOIN customers c ON c.id = so.customer_id

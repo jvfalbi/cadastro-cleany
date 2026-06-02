@@ -235,6 +235,7 @@
         var btn = document.getElementById('btn-buscar-cep');
         var street = document.getElementById('address_street');
         var num = document.getElementById('address_number');
+        var complement = document.getElementById('address_complement');
         var bairro = document.getElementById('address_neighborhood');
         var cidade = document.getElementById('address_city');
         var uf = document.getElementById('address_state');
@@ -280,6 +281,9 @@
                 return;
               }
               if (street) street.value = data.logradouro || '';
+              if (complement && data.complemento && !String(complement.value || '').trim()) {
+                complement.value = data.complemento;
+              }
               if (bairro) bairro.value = data.bairro || '';
               if (cidade) cidade.value = data.localidade || '';
               if (uf) uf.value = (data.uf || '').toUpperCase().slice(0, 2);
