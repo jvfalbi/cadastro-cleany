@@ -5,156 +5,7 @@
     <title>O.S. #<%= order.id %> - Cleany</title>
     <%- include('../partials/head-viewport') %>
     <%- include('../partials/head-styles') %>
-    <style>
-      .os-print-area { display: none; }
-
-      @media print {
-        @page { size: A4 portrait; margin: 5mm 8mm; }
-        html, body { background: #fff !important; font-size: 9px; color: #111; margin: 0; padding: 0; }
-        .sidebar, .footer, .no-print, .mobile-topbar, .app-shell > .layout > .sidebar { display: none !important; }
-        .app-shell, .layout, .layout--nav-drawer { display: block !important; }
-        .main-content { padding: 0 !important; margin: 0 !important; }
-        .container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
-        .card, .page-header { display: none !important; }
-        .os-print-area { display: block !important; }
-
-        .os-via {
-          width: 100%;
-          border: 1.2px solid #222;
-          border-radius: 3px;
-          padding: 3mm 3.5mm 2.5mm;
-          margin-bottom: 0;
-          position: relative;
-          box-sizing: border-box;
-        }
-
-        .os-via-label {
-          position: absolute;
-          top: 0; right: 0;
-          background: #222;
-          color: #fff;
-          font-weight: 700;
-          font-size: 7px;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          padding: 1px 7px 1.5px;
-          border-radius: 0 2px 0 4px;
-        }
-
-        .os-header {
-          display: flex;
-          align-items: center;
-          gap: 2.5mm;
-          margin-bottom: 1.5mm;
-          padding-bottom: 1.5mm;
-          border-bottom: 1.2px solid #222;
-        }
-        .os-header-logo img { max-height: 28px; width: auto; }
-        .os-header-info { flex: 1; }
-        .os-header-empresa {
-          font-size: 10.5px;
-          font-weight: 700;
-          letter-spacing: 0.01em;
-          line-height: 1.2;
-        }
-        .os-header-sub { font-size: 7px; color: #555; }
-        .os-header-num { text-align: right; white-space: nowrap; }
-        .os-header-num-big {
-          font-size: 15px;
-          font-weight: 800;
-          line-height: 1.1;
-        }
-        .os-header-num-label {
-          font-size: 6.5px;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: #555;
-        }
-        .os-header-status {
-          display: inline-block;
-          font-size: 7px;
-          font-weight: 700;
-          text-transform: uppercase;
-          padding: 1px 5px;
-          border: 1px solid #222;
-          border-radius: 2px;
-          margin-top: 1px;
-        }
-
-        .os-section { margin-bottom: 1mm; }
-        .os-section-title {
-          font-size: 6.5px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          background: #eee;
-          padding: 1px 3px;
-          margin-bottom: 1px;
-          border-left: 2px solid #222;
-        }
-
-        .os-data-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.5mm 3mm;
-        }
-        .os-field { min-width: 0; }
-        .os-field-label {
-          font-size: 6px;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          color: #666;
-          line-height: 1.2;
-        }
-        .os-field-value {
-          font-size: 8.5px;
-          font-weight: 600;
-          word-break: break-word;
-          line-height: 1.25;
-        }
-        .os-field-value--name {
-          font-size: 9.5px;
-          font-weight: 700;
-        }
-        .os-field--grow { flex: 1 1 auto; }
-        .os-field--full { flex: 0 0 100%; }
-        .os-field--addr .os-field-value {
-          font-size: 8px;
-          font-weight: 500;
-          line-height: 1.3;
-        }
-
-        .os-desc {
-          font-size: 8px;
-          line-height: 1.35;
-          white-space: pre-line;
-          word-break: break-word;
-          min-height: 5mm;
-          padding: 1px 0;
-        }
-
-        .os-signatures {
-          display: flex;
-          justify-content: space-between;
-          gap: 8mm;
-          margin-top: 2mm;
-        }
-        .os-sig-block { flex: 1; text-align: center; }
-        .os-sig-line {
-          border-top: 0.8px solid #444;
-          margin-top: 8mm;
-          padding-top: 1px;
-          font-size: 6.5px;
-          color: #555;
-        }
-
-        .os-cut-line {
-          border: none;
-          border-top: 1px dashed #aaa;
-          margin: 1.5mm 0;
-        }
-      }
-    </style>
+    <%- include('../partials/os-print-styles') %>
   </head>
   <body>
     <div class="app-shell">
@@ -173,12 +24,19 @@
                 </div>
               </div>
               <div class="btn-group">
-                <button type="button" class="btn btn-primary" onclick="window.print();">Imprimir O.S.</button>
+                <button type="button" class="btn btn-primary" onclick="window.print();">
+                  Imprimir 3 vias (Gerente / Funcionário / Cliente)
+                </button>
                 <a href="/ordens" class="btn btn-secondary">Voltar para lista</a>
               </div>
             </div>
 
-            <!-- ========== Card na tela (não imprime) ========== -->
+            <% if (typeof createdOk !== 'undefined' && createdOk) { %>
+            <div class="card no-print" style="margin-bottom: 1rem; border-color: var(--primary-green, #2d6a4f); background: rgba(45, 106, 79, 0.08);">
+              <p style="margin: 0;">O.S. salva com sucesso. Use o botão acima para imprimir as 3 vias.</p>
+            </div>
+            <% } %>
+
             <div class="card no-print">
               <div class="card-header">
                 <div class="card-title">Resumo da O.S.</div>
@@ -227,40 +85,15 @@
                 </div>
                 <div>
                   <div class="detail-label">Valor estimado</div>
-                  <div class="detail-value">
-                    <%=
-                      order.price_estimate != null
-                        ? 'R$ ' +
-                          Number(order.price_estimate)
-                            .toFixed(2)
-                            .replace('.', ',')
-                        : '-'
-                    %>
-                  </div>
+                  <div class="detail-value"><%= print.valEst %></div>
                 </div>
                 <div>
                   <div class="detail-label">Valor final</div>
-                  <div class="detail-value">
-                    <%=
-                      order.price_final != null
-                        ? 'R$ ' +
-                          Number(order.price_final).toFixed(2).replace('.', ',')
-                        : '-'
-                    %>
-                  </div>
+                  <div class="detail-value"><%= print.valFin %></div>
                 </div>
                 <div style="grid-column: 1 / -1">
                   <div class="detail-label">Data e horário previstos</div>
-                  <div class="detail-value">
-                    <%
-                      var hm = order.due_time && String(order.due_time).trim() ? String(order.due_time).trim().slice(0, 5) : '';
-                      if (order.due_date) {
-                    %>
-                    <%= new Date(order.due_date + 'T12:00:00').toLocaleDateString('pt-BR') %><% if (hm) { %> às <%= hm %><% } %>
-                    <% } else { %>
-                    <%= hm ? hm : '—' %>
-                    <% } %>
-                  </div>
+                  <div class="detail-value"><%= print.dataPrev || '—' %></div>
                 </div>
                 <div>
                   <div class="detail-label">Criada em</div>
@@ -320,74 +153,7 @@
               </form>
             </div>
 
-            <!-- ========== 3 vias para impressão ========== -->
-            <%
-              var _hm = order.due_time && String(order.due_time).trim() ? String(order.due_time).trim().slice(0, 5) : '';
-              var _dataPrev = '';
-              if (order.due_date) {
-                _dataPrev = new Date(order.due_date + 'T12:00:00').toLocaleDateString('pt-BR');
-                if (_hm) _dataPrev += ' às ' + _hm;
-              } else if (_hm) {
-                _dataPrev = _hm;
-              }
-              var _valEst = order.price_estimate != null
-                ? 'R$ ' + Number(order.price_estimate).toFixed(2).replace('.', ',')
-                : '—';
-              var _valFin = order.price_final != null
-                ? 'R$ ' + Number(order.price_final).toFixed(2).replace('.', ',')
-                : '—';
-              var _vias = ['Gerente', 'Funcionário', 'Cliente'];
-            %>
-            <div class="os-print-area">
-              <% _vias.forEach(function(via, idx) { %>
-              <% if (idx > 0) { %><hr class="os-cut-line" /><% } %>
-              <div class="os-via">
-                <div class="os-via-label"><%= via %></div>
-                <div class="os-header">
-                  <div class="os-header-logo"><img src="/img/logocleany.png" alt="Cleany" /></div>
-                  <div class="os-header-info">
-                    <div class="os-header-empresa">Cleany — Trituradores de Resíduos</div>
-                    <div class="os-header-sub">Ordem de Serviço</div>
-                  </div>
-                  <div class="os-header-num">
-                    <div class="os-header-num-label">Nº O.S.</div>
-                    <div class="os-header-num-big"><%= order.id %></div>
-                    <div class="os-header-status"><%= order.status %></div>
-                  </div>
-                </div>
-
-                <div class="os-section">
-                  <div class="os-section-title">Cliente</div>
-                  <div class="os-data-row">
-                    <div class="os-field os-field--grow"><div class="os-field-label">Nome</div><div class="os-field-value os-field-value--name"><%= order.customer_name %></div></div>
-                    <div class="os-field"><div class="os-field-label">Cód.</div><div class="os-field-value"><%= order.customer_codigo || '—' %></div></div>
-                    <div class="os-field"><div class="os-field-label">CPF/CNPJ</div><div class="os-field-value"><%= order.document || '—' %></div></div>
-                    <div class="os-field"><div class="os-field-label">Telefone</div><div class="os-field-value"><%= order.phone || '—' %></div></div>
-                    <% if (order.email) { %><div class="os-field"><div class="os-field-label">E-mail</div><div class="os-field-value"><%= order.email %></div></div><% } %>
-                  </div>
-                  <div class="os-data-row" style="margin-top:0.5mm">
-                    <div class="os-field os-field--full os-field--addr"><div class="os-field-label">Endereço</div><div class="os-field-value"><%= order.address_full || order.address || '—' %></div></div>
-                  </div>
-                </div>
-
-                <div class="os-section">
-                  <div class="os-section-title">Serviço</div>
-                  <div class="os-data-row">
-                    <div class="os-field"><div class="os-field-label">Data/hora</div><div class="os-field-value"><%= _dataPrev || '—' %></div></div>
-                    <div class="os-field"><div class="os-field-label">Valor est.</div><div class="os-field-value"><%= _valEst %></div></div>
-                    <div class="os-field"><div class="os-field-label">Valor final</div><div class="os-field-value"><%= _valFin %></div></div>
-                  </div>
-                  <div class="os-desc"><%= order.description %></div>
-                </div>
-
-                <div class="os-signatures">
-                  <div class="os-sig-block"><div class="os-sig-line">Assinatura do cliente</div></div>
-                  <div class="os-sig-block"><div class="os-sig-line">Assinatura do responsável</div></div>
-                </div>
-              </div>
-              <% }); %>
-            </div>
-
+            <%- include('../partials/os-print-3vias', { print: print }) %>
           </div>
         </main>
       </div>

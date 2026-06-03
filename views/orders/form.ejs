@@ -5,20 +5,12 @@
     <title>Nova ordem de serviço - Cleany</title>
     <%- include('../partials/head-viewport') %>
     <%- include('../partials/head-styles') %>
+    <%- include('../partials/os-print-styles') %>
     <style>
-      .print-logo { display: none; }
-      .print-only-time { display: none; }
+      .time-row { }
       @media print {
-        .print-logo { display: block !important; text-align: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #333; }
-        .print-logo img { max-height: 56px; width: auto; }
         .time-row { display: none !important; }
-        .print-only-time { display: block !important; margin-bottom: 0.75rem; }
-        .sidebar, .footer, .no-print { display: none !important; }
-        .layout { display: block; }
-        .main-content { padding: 0; }
-        .container { max-width: 100%; }
-        .card { box-shadow: none; border: 1px solid #333; }
-        body { background: #fff; }
+        #order-form-card { display: none !important; }
       }
     </style>
   </head>
@@ -28,23 +20,22 @@
         <%- include('../partials/navbar') %>
         <main class="main-content">
           <div class="container">
-            <div class="print-logo">
-              <img src="/img/logocleany.png" alt="Cleany - Trituradores de Resíduos" />
-            </div>
-            <div class="page-header">
+            <div class="page-header no-print">
               <div>
                 <div class="page-title">Nova ordem de serviço</div>
                 <div class="page-subtitle">
-                  Vincule a O.S. a um cliente e descreva o serviço.
+                  Vincule a O.S. a um cliente e descreva o serviço. A impressão gera 3 vias: Gerente, Funcionário e Cliente.
                 </div>
               </div>
-              <div class="btn-group no-print">
+              <div class="btn-group">
                 <a href="/ordens" class="btn btn-secondary">Voltar ao histórico</a>
-                <button type="button" class="btn btn-primary" onclick="imprimirOS();">Imprimir O.S.</button>
+                <button type="button" class="btn btn-primary" id="btn-imprimir-os">Imprimir 3 vias</button>
               </div>
             </div>
 
-            <div class="card">
+            <div id="os-print-mount"></div>
+
+            <div class="card" id="order-form-card">
               <form id="order-form" action="/ordens" method="post">
                 <div class="form-grid">
                   <div class="form-group customer-picker">
@@ -95,7 +86,6 @@
                   <div class="form-group form-group--time" style="grid-column: 1 / -1;">
                     <label>Horário previsto*</label>
                     <input type="hidden" id="due_time" name="due_time" value="" required />
-                    <div class="print-only-time"><strong>Horário previsto:</strong> <span id="print_time_display">—</span></div>
                     <div class="time-row">
                       <div class="time-slots-container">
                         <div id="due_time_slots" class="time-slots"></div>
@@ -136,37 +126,106 @@
 
     </div>
     <script>
-      function syncPrintHorario() {
-        var hid = document.getElementById('due_time');
-        var printDisplay = document.getElementById('print_time_display');
-        if (printDisplay && hid) {
-          var v = (hid.value || '').trim();
-          printDisplay.textContent = v || '—';
-        }
-      }
-      function imprimirOS() {
-        var form = document.getElementById('order-form');
-        if (!form) return;
-        var hid = document.getElementById('customer_id');
-        var searchInput = document.getElementById('customer_search');
-        if (hid && !hid.value && searchInput) {
-          searchInput.setCustomValidity('Selecione um cliente na lista ao digitar.');
-          searchInput.reportValidity();
-          return;
-        }
-        if (searchInput) searchInput.setCustomValidity('');
-        syncPrintHorario();
-        if (form.checkValidity()) {
-          window.print();
-        } else {
-          form.reportValidity();
-        }
-      }
-      window.addEventListener('beforeprint', syncPrintHorario);
       (function () {
         var CUSTOMERS = <%- JSON.stringify((customers || []).map(function (c) {
-          return { id: c.id, name: c.name || '', codigo: (c.codigo || '').toString().trim() };
+          return {
+            id: c.id,
+            name: c.name || '',
+            codigo: (c.codigo || '').toString().trim(),
+            nome_fantasia: c.nome_fantasia || '',
+            phone: c.phone || '',
+            email: c.email || '',
+            document: c.document || '',
+            address: c.address || '',
+            cep: c.cep || '',
+            address_street: c.address_street || '',
+            address_number: c.address_number || '',
+            address_complement: c.address_complement || '',
+            address_neighborhood: c.address_neighborhood || '',
+            address_city: c.address_city || '',
+            address_state: c.address_state || '',
+          };
         })) %>;
+
+        function customerById(id) {
+          var sid = String(id || '');
+          for (var i = 0; i < CUSTOMERS.length; i++) {
+            if (String(CUSTOMERS[i].id) === sid) return CUSTOMERS[i];
+          }
+          return null;
+        }
+
+        function buildPrintPayload() {
+          var c = customerById(document.getElementById('customer_id').value);
+          return {
+            id: 'Rascunho',
+            status: (document.getElementById('status') || {}).value || 'Aberta',
+            customer_name: c ? c.name : '—',
+            nome_fantasia: c ? c.nome_fantasia : '',
+            customer_codigo: c ? c.codigo : '',
+            document: c ? c.document : '',
+            phone: c ? c.phone : '',
+            email: c ? c.email : '',
+            address: c ? c.address : '',
+            cep: c ? c.cep : '',
+            address_street: c ? c.address_street : '',
+            address_number: c ? c.address_number : '',
+            address_complement: c ? c.address_complement : '',
+            address_neighborhood: c ? c.address_neighborhood : '',
+            address_city: c ? c.address_city : '',
+            address_state: c ? c.address_state : '',
+            due_date: (document.getElementById('due_date') || {}).value || '',
+            due_time: (document.getElementById('due_time') || {}).value || '',
+            price_estimate: (document.getElementById('price_estimate') || {}).value || '',
+            price_final: '',
+            description: (document.getElementById('description') || {}).value || '',
+            created_at: new Date().toISOString(),
+          };
+        }
+
+        async function imprimirOS() {
+          var form = document.getElementById('order-form');
+          if (!form) return;
+          var hid = document.getElementById('customer_id');
+          var searchInput = document.getElementById('customer_search');
+          if (hid && !hid.value && searchInput) {
+            searchInput.setCustomValidity('Selecione um cliente na lista ao digitar.');
+            searchInput.reportValidity();
+            return;
+          }
+          if (searchInput) searchInput.setCustomValidity('');
+          if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+          }
+          var mount = document.getElementById('os-print-mount');
+          var btn = document.getElementById('btn-imprimir-os');
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Preparando impressão…';
+          }
+          try {
+            var resp = await fetch('/ordens/preview-print-html', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify(buildPrintPayload()),
+            });
+            if (!resp.ok) throw new Error('Falha ao gerar as vias.');
+            mount.innerHTML = await resp.text();
+            window.print();
+          } catch (e) {
+            alert(e.message || 'Não foi possível preparar a impressão.');
+          } finally {
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = 'Imprimir 3 vias';
+            }
+          }
+        }
+
+        var btnPrint = document.getElementById('btn-imprimir-os');
+        if (btnPrint) btnPrint.addEventListener('click', imprimirOS);
 
         function norm(s) {
           return (s || '')
@@ -279,17 +338,12 @@
         var dateInput = document.getElementById('due_date');
         var initialOcupados = <%- JSON.stringify(typeof prefillOcupados !== 'undefined' ? prefillOcupados : []) %>;
 
-        var printDisplay = document.getElementById('print_time_display');
-        function atualizarPrintTime(v) {
-          if (printDisplay) printDisplay.textContent = v || '—';
-        }
         if (manualInput) {
           manualInput.addEventListener('input', function () {
             var raw = this.value.replace(/\D/g, '').slice(0, 4);
             var masked = raw.length <= 2 ? raw : raw.slice(0, 2) + ':' + raw.slice(2);
             this.value = masked;
             hiddenInput.value = masked;
-            atualizarPrintTime(masked);
             container.querySelectorAll('.time-slot-btn').forEach(function (b) { b.classList.remove('selected'); });
           });
         }
@@ -301,7 +355,6 @@
         function preencherHorarios(ocupados) {
           container.innerHTML = '';
           hiddenInput.value = '';
-          atualizarPrintTime('');
           if (manualInput) manualInput.value = '';
           for (var i = 0; i < slots.length; i++) {
             if (horaOcupada(slots[i], ocupados)) continue;
@@ -315,7 +368,6 @@
               container.querySelectorAll('.time-slot-btn').forEach(function (b) { b.classList.remove('selected'); });
               this.classList.add('selected');
               hiddenInput.value = t;
-              atualizarPrintTime(t);
               if (manualInput) manualInput.value = '';
             });
             container.appendChild(btn);
@@ -335,7 +387,6 @@
             .then(function (d) { preencherHorarios(d.ocupados || []); })
             .catch(function () { preencherHorarios([]); });
         });
-        atualizarPrintTime(hiddenInput.value);
       })();
     </script>
   </body>

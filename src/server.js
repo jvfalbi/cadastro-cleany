@@ -184,6 +184,73 @@ function formatCustomerAddressLine(row) {
   return String(row.address || '').trim() || null;
 }
 
+function buildAddressLines(row) {
+  const lines = [];
+  const rua = (row.address_street || '').trim();
+  const num = (row.address_number || '').trim();
+  const compl = (row.address_complement || '').trim();
+  const bairro = (row.address_neighborhood || '').trim();
+  const cidade = (row.address_city || '').trim();
+  const uf = (row.address_state || '').trim();
+  let cep = String(row.cep || '').trim();
+  const cepD = cep.replace(/\D/g, '');
+  if (cepD.length === 8) cep = cepD.slice(0, 5) + '-' + cepD.slice(5);
+  if (rua || num) {
+    let line = rua;
+    if (num) line += (line ? ', ' : '') + 'nº ' + num;
+    if (compl) line += ' — ' + compl;
+    if (line.trim()) lines.push(line.trim());
+  }
+  if (bairro) lines.push(bairro);
+  if (cidade || uf) lines.push(cidade && uf ? `${cidade} / ${uf}` : cidade || uf);
+  if (cep) lines.push('CEP ' + cep);
+  const full = formatCustomerAddressLine(row) || String(row.address || '').trim() || '';
+  if (!lines.length && full) lines.push(full);
+  return { lines, full };
+}
+
+function formatMoneyBr(value) {
+  if (value == null || value === '') return '—';
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  return 'R$ ' + n.toFixed(2).replace('.', ',');
+}
+
+function formatDueDisplay(due_date, due_time) {
+  const hm = due_time && String(due_time).trim() ? String(due_time).trim().slice(0, 5) : '';
+  if (due_date) {
+    let s = new Date(due_date + 'T12:00:00').toLocaleDateString('pt-BR');
+    if (hm) s += ' às ' + hm;
+    return s;
+  }
+  return hm || '';
+}
+
+/** Objeto usado na impressão (3 vias). */
+function buildOrderPrintPayload(order) {
+  const o = order || {};
+  const addr = buildAddressLines(o);
+  return {
+    id: o.id != null ? String(o.id) : '—',
+    status: o.status || 'Aberta',
+    customer_name: o.customer_name || '—',
+    nome_fantasia: o.nome_fantasia || '',
+    customer_codigo: o.customer_codigo || '',
+    document: o.document || '',
+    phone: o.phone || '',
+    email: o.email || '',
+    address_full: addr.full || '—',
+    address_lines: addr.lines,
+    dataPrev: formatDueDisplay(o.due_date, o.due_time),
+    valEst: formatMoneyBr(o.price_estimate),
+    valFin: formatMoneyBr(o.price_final),
+    description: o.description || '',
+    emittedAt: o.created_at
+      ? new Date(o.created_at).toLocaleString('pt-BR')
+      : new Date().toLocaleString('pt-BR'),
+  };
+}
+
 function mergeCustomerForForm(body, extra = {}) {
   const addr = readCustomerAddressFromBody(body);
   return {
@@ -916,7 +983,10 @@ app.get('/ordens/nova', (req, res) => {
     res.render('orders/form', { customers, prefillDate, prefillOcupados: prefillOcupados || [] });
   };
   db.all(
-    `SELECT id, name, codigo FROM customers ORDER BY ${SQL_ORDER_CUSTOMERS_BY_CODIGO_NUM}`,
+    `SELECT id, name, codigo, nome_fantasia, phone, email, document, address,
+            cep, address_street, address_number, address_complement,
+            address_neighborhood, address_city, address_state
+     FROM customers ORDER BY ${SQL_ORDER_CUSTOMERS_BY_CODIGO_NUM}`,
     (err, customers) => {
     if (err) {
       return res.status(500).send('Erro ao carregar clientes.');
@@ -954,13 +1024,48 @@ app.post('/ordens', (req, res) => {
     now,
     due_date || null,
     due_time || null,
-    (err) => {
+    function (err) {
       if (err) {
         return res.status(500).send('Erro ao salvar ordem de serviço.');
       }
-      res.redirect('/ordens');
+      res.redirect('/ordens/' + this.lastID + '?ok=criada');
     }
   );
+});
+
+app.post('/ordens/preview-print-html', requireAuth, express.json({ limit: '48kb' }), (req, res) => {
+  const body = req.body || {};
+  const print = buildOrderPrintPayload({
+    id: body.id,
+    status: body.status,
+    customer_name: body.customer_name,
+    nome_fantasia: body.nome_fantasia,
+    customer_codigo: body.customer_codigo,
+    document: body.document,
+    phone: body.phone,
+    email: body.email,
+    address: body.address,
+    cep: body.cep,
+    address_street: body.address_street,
+    address_number: body.address_number,
+    address_complement: body.address_complement,
+    address_neighborhood: body.address_neighborhood,
+    address_city: body.address_city,
+    address_state: body.address_state,
+    due_date: body.due_date,
+    due_time: body.due_time,
+    price_estimate: body.price_estimate,
+    price_final: body.price_final,
+    description: body.description,
+    created_at: body.created_at,
+  });
+  res.render('partials/os-print-3vias', { print, layout: false }, (errRender, html) => {
+    if (errRender) {
+      console.error('[Cleany] preview-print-html:', errRender.message);
+      return res.status(500).type('text').send('Erro ao gerar impressão.');
+    }
+    res.type('html').send(html);
+  });
 });
 
 app.get('/ordens/:id', (req, res) => {
@@ -981,7 +1086,10 @@ app.get('/ordens/:id', (req, res) => {
       return res.status(404).send('Ordem de serviço não encontrada.');
     }
     order.address_full = formatCustomerAddressLine(order) || order.address || '';
-    res.render('orders/detail', { order });
+    order.address_lines = buildAddressLines(order).lines;
+    const print = buildOrderPrintPayload(order);
+    const createdOk = req.query.ok === 'criada';
+    res.render('orders/detail', { order, print, createdOk });
   });
 });
 
