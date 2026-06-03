@@ -34,6 +34,17 @@ Informe o caminho do `.pem` e `ec2-user@SEU_IP`. Depois, no SSH:
 
 `cd ~/cadastro-cleany && npm install --omit=dev && pm2 restart cadastro-cleany`
 
+Depois que o Git na EC2 estiver configurado (veja abaixo), nas próximas vezes use no site: **Manutenção → Atualizar do GitHub e reiniciar** (só usuário admin, só com `NODE_ENV=production`).
+
+**Uma vez na EC2 — Git para o botão do site funcionar:**
+
+```bash
+cd ~/cadastro-cleany
+git pull origin main   # use o token do GitHub quando pedir senha
+```
+
+Se pedir credencial de novo a cada pull, salve no servidor: `git config credential.helper store` e repita um `git pull`.
+
 ---
 
 ## Parte A — Criar a instância EC2 (console AWS)

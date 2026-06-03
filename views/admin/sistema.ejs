@@ -16,7 +16,7 @@
               <div>
                 <div class="page-title">Manutenção</div>
                 <div class="page-subtitle">
-                  Atualizar versão dos arquivos no navegador e reiniciar o servidor (PM2 na EC2).
+                  Publicar código do GitHub na EC2, cache do navegador e reinício (PM2).
                 </div>
               </div>
             </div>
@@ -38,6 +38,27 @@
                 <strong>Atenção:</strong> o <code>.env</code> define <code>ASSET_V</code>. Enquanto existir, a versão dos CSS/JS não muda com a data dos arquivos.
                 Para forçar nova versão, altere o valor de <code>ASSET_V</code> no servidor ou remova essa linha.
               </p>
+            </div>
+            <% } %>
+
+            <% if (typeof gitDeployEnabled !== 'undefined' && gitDeployEnabled) { %>
+            <div class="card" style="margin-bottom: 1.5rem; border-color: var(--primary-green, #2d6a4f);">
+              <h2 class="page-title" style="font-size: 1.1rem; margin-bottom: 0.75rem;">Publicar no site (GitHub → EC2)</h2>
+              <p class="hint" style="margin-bottom: 1rem;">
+                Depois do <code>git push</code> no Mac, use este botão na produção: roda
+                <code>git pull origin <%= typeof gitBranch !== 'undefined' ? gitBranch : 'main' %></code>
+                e em seguida <code>pm2 restart <%= typeof pm2Name !== 'undefined' ? pm2Name : 'cadastro-cleany' %></code>.
+                <strong>Na primeira vez</strong> na EC2 ainda é preciso configurar o Git (token) via SSH — depois disso não precisa mais do terminal.
+              </p>
+              <form
+                method="post"
+                action="/admin/sistema/atualizar-codigo"
+                class="js-confirm-submit"
+                data-confirm-title="Atualizar site?"
+                data-confirm-msg="Vai baixar o código mais recente do GitHub e reiniciar o app. O site pode ficar alguns segundos fora do ar. Continuar?"
+              >
+                <button type="submit" class="btn btn-primary">Atualizar do GitHub e reiniciar</button>
+              </form>
             </div>
             <% } %>
 

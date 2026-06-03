@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 // Caminho absoluto à raiz do projeto (onde fica package.json e .env). PM2 nem sempre usa cwd correto.
-const ENV_PATH = path.resolve(__dirname, '..', '.env');
+const PROJECT_ROOT = path.resolve(__dirname, '..');
+const ENV_PATH = path.join(PROJECT_ROOT, '.env');
 const envResult = require('dotenv').config({ path: ENV_PATH });
 if (envResult.error) {
   console.warn('[Cleany] .env não carregado:', ENV_PATH, '(' + (envResult.error.code || envResult.error.message) + ') — login/senha vêm do código padrão.');
@@ -240,7 +241,7 @@ function touchPublicStaticAssets() {
 }
 
 function schedulePm2Restart() {
-  const appName = PM2_APP_NAME;
+  const appName = PM2_APP_NAME.replace(/[^a-zA-Z0-9._-]/g, '');
   if (process.platform === 'win32') {
     spawn('cmd', ['/c', `timeout /t 1 /nobreak >nul & pm2 restart ${appName}`], {
       detached: true,
@@ -248,11 +249,25 @@ function schedulePm2Restart() {
       windowsHide: true,
     }).unref();
   } else {
-    spawn('sh', ['-c', `sleep 1 && pm2 restart ${appName.replace(/[^a-zA-Z0-9._-]/g, '')}`], {
+    spawn('sh', ['-c', `sleep 1 && pm2 restart ${appName}`], {
       detached: true,
       stdio: 'ignore',
     }).unref();
   }
+}
+
+/** Comando no diretório do app (git pull na EC2 pelo menu Manutenção). */
+function runInProject(cmd, args, timeoutMs = 120000) {
+  return spawnSync(cmd, args, {
+    cwd: PROJECT_ROOT,
+    encoding: 'utf8',
+    timeout: timeoutMs,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+  });
+}
+
+function adminGitDeployEnabled() {
+  return isProd || cleanEnvCredential(process.env.ENABLE_ADMIN_GIT_DEPLOY) === '1';
 }
 
 app.set('view engine', 'ejs');
@@ -431,6 +446,11 @@ app.get('/admin/sistema', requireAdmin, (req, res) => {
   } else if (q.ok === 'reiniciar') {
     success =
       'Reinício do aplicativo pedido ao PM2. Em alguns segundos o site pode ficar indisponível e voltar sozinho.';
+  } else if (q.ok === 'deploy') {
+    const head = q.head ? String(q.head) : '';
+    success =
+      'Código atualizado do GitHub e reinício do PM2 pedido. Aguarde alguns segundos e recarregue a página (Cmd+Shift+R).' +
+      (head ? ' Versão: ' + head : '');
   } else if (q.ok === 'sessoes') {
     success = 'Sessões de login apagadas. Todos os usuários precisarão entrar de novo.';
   } else if (q.ok === 'sessoes-vazio') {
@@ -441,6 +461,8 @@ app.get('/admin/sistema', requireAdmin, (req, res) => {
     error,
     assetVFixo: !!(process.env.ASSET_V && String(process.env.ASSET_V).trim()),
     pm2Name: PM2_APP_NAME,
+    gitDeployEnabled: adminGitDeployEnabled(),
+    gitBranch: cleanEnvCredential(process.env.ADMIN_GIT_BRANCH) || 'main',
   });
 });
 
@@ -458,6 +480,42 @@ app.post('/admin/sistema/limpar-cache', requireAdmin, (req, res) => {
 app.post('/admin/sistema/reiniciar', requireAdmin, (req, res) => {
   console.warn('[Cleany] Admin: reinício PM2 solicitado —', PM2_APP_NAME);
   res.redirect('/admin/sistema?ok=reiniciar');
+  setTimeout(() => schedulePm2Restart(), 400);
+});
+
+app.post('/admin/sistema/atualizar-codigo', requireAdmin, (req, res) => {
+  if (!adminGitDeployEnabled()) {
+    return res.redirect(
+      '/admin/sistema?erro=' +
+        encodeURIComponent('Atualização pelo site só em produção (NODE_ENV=production na EC2).')
+    );
+  }
+  if (!fs.existsSync(path.join(PROJECT_ROOT, '.git'))) {
+    return res.redirect(
+      '/admin/sistema?erro=' +
+        encodeURIComponent('A pasta do app na EC2 não é um clone Git. Use git clone ou SSH uma vez.')
+    );
+  }
+  const branch = cleanEnvCredential(process.env.ADMIN_GIT_BRANCH) || 'main';
+  console.warn('[Cleany] Admin: git pull origin', branch);
+  const pull = runInProject('git', ['pull', 'origin', branch]);
+  if (pull.status !== 0) {
+    const msg = String(pull.stderr || pull.stdout || 'git pull falhou')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 380);
+    console.error('[Cleany] Admin git pull falhou:', msg);
+    return res.redirect(
+      '/admin/sistema?erro=' +
+        encodeURIComponent(
+          'git pull falhou. Na EC2 configure o Git uma vez (token ou SSH). Detalhe: ' + msg
+        )
+    );
+  }
+  const head = runInProject('git', ['log', '-1', '--oneline']);
+  const headLine = String(head.stdout || '').trim();
+  console.log('[Cleany] Admin git pull OK:', headLine);
+  res.redirect('/admin/sistema?ok=deploy&head=' + encodeURIComponent(headLine));
   setTimeout(() => schedulePm2Restart(), 400);
 });
 

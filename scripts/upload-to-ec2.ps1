@@ -25,6 +25,7 @@ if (-not $RemoteHost) {
 
 $files = @(
   @{ Local = "src\server.js"; Remote = "src/server.js" },
+  @{ Local = "views\customers\form.ejs"; Remote = "views/customers/form.ejs" },
   @{ Local = "ecosystem.config.cjs"; Remote = "ecosystem.config.cjs" },
   @{ Local = "package.json"; Remote = "package.json" }
 )
