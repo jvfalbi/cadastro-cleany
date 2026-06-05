@@ -216,6 +216,62 @@ function formatMoneyBr(value) {
   return 'R$ ' + n.toFixed(2).replace('.', ',');
 }
 
+/** Campo CSV (Excel BR: separador ; e BOM UTF-8). */
+function csvCell(value) {
+  const s = value == null ? '' : String(value).replace(/\r?\n/g, ' ').trim();
+  if (/[;"\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function customersToCsv(rows) {
+  const sep = ';';
+  const headers = [
+    'Código',
+    'Nome',
+    'Nome fantasia',
+    'CPF/CNPJ',
+    'Inscrição estadual',
+    'Telefone',
+    'E-mail',
+    'CEP',
+    'Rua',
+    'Número',
+    'Complemento',
+    'Bairro',
+    'Cidade',
+    'UF',
+    'Endereço completo',
+    'Observações',
+  ];
+  const lines = [headers.map((h) => csvCell(h)).join(sep)];
+  for (const r of rows || []) {
+    const addr = formatCustomerAddressLine(r) || r.address || '';
+    lines.push(
+      [
+        r.codigo,
+        r.name,
+        r.nome_fantasia,
+        r.document,
+        r.inscricao_estadual,
+        r.phone,
+        r.email,
+        r.cep,
+        r.address_street,
+        r.address_number,
+        r.address_complement,
+        r.address_neighborhood,
+        r.address_city,
+        r.address_state,
+        addr,
+        r.notes,
+      ]
+        .map((v) => csvCell(v))
+        .join(sep)
+    );
+  }
+  return '\uFEFF' + lines.join('\r\n');
+}
+
 function formatDueDisplay(due_date, due_time) {
   const hm = due_time && String(due_time).trim() ? String(due_time).trim().slice(0, 5) : '';
   if (due_date) {
@@ -646,6 +702,19 @@ app.get('/clientes', (req, res) => {
 
 app.get('/clientes/novo', (req, res) => {
   res.render('customers/form', { customer: null });
+});
+
+app.get('/clientes/exportar.csv', (req, res) => {
+  db.all(`SELECT * FROM customers ORDER BY ${SQL_ORDER_CUSTOMERS_BY_CODIGO_NUM}`, (err, rows) => {
+    if (err) {
+      console.error('[Cleany] GET /clientes/exportar.csv:', err.message);
+      return res.status(500).send('Erro ao exportar clientes.');
+    }
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="clientes-cleany-${stamp}.csv"`);
+    res.send(customersToCsv(rows || []));
+  });
 });
 
 app.post('/clientes', (req, res) => {
