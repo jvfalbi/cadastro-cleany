@@ -32,11 +32,21 @@
   var s = (v || '').toString().replace(/\0/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
   return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 } %>
-              <% if (customers && customers.length) { %>
               <p id="clientes-filter-no-match" class="clientes-filter-no-match" hidden role="status">
-                Nenhum cliente corresponde aos filtros (a lista não foi apagada). Use <strong>Limpar</strong> ou esvazie os campos de pesquisa.
+                Nenhum cliente corresponde aos filtros. Use <strong>Limpar</strong> ou esvazie os campos de pesquisa.
               </p>
-              <% } %>
+              <div class="clientes-toolbar" style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+                <p class="hint" id="clientes-count" style="margin:0;font-size:0.88rem;">
+                  Mostrando <strong id="clientes-count-visible"><%= customers.length %></strong>
+                  de <strong id="clientes-count-total"><%= total %></strong> clientes
+                  (página <strong id="clientes-page"><%= page %></strong> de <strong id="clientes-totalpages"><%= totalPages %></strong>).
+                  <span id="clientes-loading" hidden style="margin-left:0.5rem;color:var(--text-muted);">buscando...</span>
+                </p>
+                <div class="btn-group" id="clientes-pagination">
+                  <button type="button" class="btn btn-secondary btn-sm" id="pag-prev" <%= page <= 1 ? 'disabled' : '' %>>‹ Anterior</button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="pag-next" <%= page >= totalPages ? 'disabled' : '' %>>Próxima ›</button>
+                </div>
+              </div>
               <table class="table-clientes">
                 <colgroup>
                   <col style="width: 7rem" />
@@ -52,31 +62,31 @@
                       <button type="button" class="th-sort" data-sort-col="codigo" aria-label="Ordenar por código">
                         <span class="th-sort-text">Código</span><span class="th-sort-dir" aria-hidden="true"></span>
                       </button>
-                      <input type="search" id="filter-codigo" name="search_codigo" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por código" autocomplete="off" autocorrect="off" spellcheck="false" />
+                      <input type="search" id="filter-codigo" name="q_codigo" value="<%= filters.q_codigo %>" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por código" autocomplete="off" autocorrect="off" spellcheck="false" />
                     </th>
                     <th>
                       <button type="button" class="th-sort" data-sort-col="nome" aria-label="Ordenar por nome">
                         <span class="th-sort-text">Nome</span><span class="th-sort-dir" aria-hidden="true"></span>
                       </button>
-                      <input type="search" id="filter-nome" name="search_nome" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por nome" autocomplete="off" autocorrect="off" spellcheck="false" />
+                      <input type="search" id="filter-nome" name="q_nome" value="<%= filters.q_nome %>" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por nome" autocomplete="off" autocorrect="off" spellcheck="false" />
                     </th>
                     <th>
                       <button type="button" class="th-sort" data-sort-col="cpf" aria-label="Ordenar por CPF">
                         <span class="th-sort-text">CPF</span><span class="th-sort-dir" aria-hidden="true"></span>
                       </button>
-                      <input type="search" id="filter-cpf" name="search_cpf" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por CPF" autocomplete="off" autocorrect="off" spellcheck="false" />
+                      <input type="search" id="filter-cpf" name="q_cpf" value="<%= filters.q_cpf %>" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por CPF" autocomplete="off" autocorrect="off" spellcheck="false" />
                     </th>
                     <th>
                       <button type="button" class="th-sort" data-sort-col="celular" aria-label="Ordenar por celular">
                         <span class="th-sort-text">Celular</span><span class="th-sort-dir" aria-hidden="true"></span>
                       </button>
-                      <input type="search" id="filter-celular" name="search_celular" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por celular" autocomplete="off" autocorrect="off" spellcheck="false" />
+                      <input type="search" id="filter-celular" name="q_celular" value="<%= filters.q_celular %>" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por celular" autocomplete="off" autocorrect="off" spellcheck="false" />
                     </th>
                     <th>
                       <button type="button" class="th-sort" data-sort-col="endereco" aria-label="Ordenar por endereço">
                         <span class="th-sort-text">Endereço</span><span class="th-sort-dir" aria-hidden="true"></span>
                       </button>
-                      <input type="search" id="filter-endereco" name="search_endereco" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por endereço" autocomplete="off" autocorrect="off" spellcheck="false" />
+                      <input type="search" id="filter-endereco" name="q_endereco" value="<%= filters.q_endereco %>" class="filter-search" placeholder="Pesquisar..." title="Pesquisar por endereço" autocomplete="off" autocorrect="off" spellcheck="false" />
                     </th>
                     <th class="filter-actions">
                       <span class="th-label">Ações</span>
@@ -84,39 +94,27 @@
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="clientes-tbody">
                   <% if (!customers || customers.length === 0) { %>
-                  <tr class="filterable-row">
+                  <tr>
                     <td colspan="6" class="table-empty">
-                      Nenhum cliente cadastrado ainda. Clique em "Novo cliente"
-                      para começar.
+                      Nenhum cliente encontrado. Ajuste a busca ou clique em "Novo cliente".
                     </td>
                   </tr>
-                  <% } else { %> <% customers.forEach(function (c) { %>
-                  <% var _codDigits = String(c.codigo || '').replace(/\D/g, ''); var _sortCod = _codDigits === '' ? -1 : parseInt(_codDigits, 10); %>
-                  <tr class="filterable-row" data-row-id="<%= c.id %>" data-sort-codigo-num="<%= isNaN(_sortCod) ? -1 : _sortCod %>" data-codigo="<%= esc((c.codigo || '').toLowerCase()) %>" data-nome="<%= esc((c.name || '').toLowerCase()) %>" data-cpf="<%= esc((c.document || '').toLowerCase()) %>" data-celular="<%= esc((c.phone || '').toLowerCase()) %>" data-endereco="<%= esc((c.address_display || c.address || '').toLowerCase()) %>">
+                  <% } else { %>
+                    <% customers.forEach(function (c) { %>
+                  <tr data-row-id="<%= c.id %>">
                     <td><%= esc(c.codigo || '-') %></td>
                     <td><%= esc(c.name || '') %></td>
                     <td><%= esc(c.document || '-') %></td>
                     <td><%= esc(c.phone || '-') %></td>
-                    <td><%= esc(c.address_display || c.address || '-') %></td>
+                    <td><%= esc(c.address_display || '-') %></td>
                     <td>
                       <div class="btn-group">
-                        <a
-                          href="/clientes/<%= c.id %>/editar"
-                          class="btn btn-secondary btn-sm btn-icon"
-                          title="Editar"
-                        >
+                        <a href="/clientes/<%= c.id %>/editar" class="btn btn-secondary btn-sm btn-icon" title="Editar">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </a>
-                        <form
-                          class="js-confirm-submit"
-                          action="/clientes/<%= c.id %>/excluir"
-                          method="post"
-                          style="display: inline"
-                          data-confirm-title="Excluir cliente?"
-                          data-confirm-msg="Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita."
-                        >
+                        <form class="js-confirm-submit" action="/clientes/<%= c.id %>/excluir" method="post" style="display:inline" data-confirm-title="Excluir cliente?" data-confirm-msg="Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.">
                           <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Excluir">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                           </button>
@@ -125,171 +123,203 @@
                       </div>
                     </td>
                   </tr>
-                  <% }); %> <% } %>
+                    <% }); %>
+                  <% } %>
                 </tbody>
               </table>
             </div>
           </div>
         </main>
       </div>
-
     </div>
     <script>
       (function () {
-        var rows = document.querySelectorAll('.filterable-row');
-        var filterCodigo = document.getElementById('filter-codigo');
-        var filterNome = document.getElementById('filter-nome');
-        var filterCpf = document.getElementById('filter-cpf');
-        var filterCelular = document.getElementById('filter-celular');
-        var filterEndereco = document.getElementById('filter-endereco');
+        var filters = {
+          q_codigo: document.getElementById('filter-codigo'),
+          q_nome: document.getElementById('filter-nome'),
+          q_cpf: document.getElementById('filter-cpf'),
+          q_celular: document.getElementById('filter-celular'),
+          q_endereco: document.getElementById('filter-endereco'),
+        };
         var filterClear = document.getElementById('filter-clear');
         var filterNoMatch = document.getElementById('clientes-filter-no-match');
-        var tbody = document.querySelector('.table-clientes tbody');
-        var sortCol = 'codigo';
-        var sortDir = 'desc';
+        var tbody = document.getElementById('clientes-tbody');
+        var countVisibleEl = document.getElementById('clientes-count-visible');
+        var countTotalEl = document.getElementById('clientes-count-total');
+        var pageEl = document.getElementById('clientes-page');
+        var totalPagesEl = document.getElementById('clientes-totalpages');
+        var loadingEl = document.getElementById('clientes-loading');
+        var pagPrev = document.getElementById('pag-prev');
+        var pagNext = document.getElementById('pag-next');
 
-        function getDataRows() {
-          return Array.prototype.filter.call(rows, function (tr) {
-            return !tr.querySelector('.table-empty');
+        var state = {
+          sortKey: <%- JSON.stringify(sortKey) %>,
+          page: <%- JSON.stringify(page) %>,
+          limit: <%- JSON.stringify(limit) %>,
+          totalPages: <%- JSON.stringify(totalPages) %>,
+        };
+
+        function htmlEscape(s) {
+          return (s == null ? '' : String(s))
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        }
+
+        var EDIT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+        var DEL_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+        var WA_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" preserveAspectRatio="xMidYMid meet"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
+
+        function rowHtml(c) {
+          var wa = '';
+          if (c.whatsapp_url) {
+            wa = '<a href="' + htmlEscape(c.whatsapp_url) + '" target="_blank" rel="noopener noreferrer" class="btn-whatsapp" title="Abrir no WhatsApp">' + WA_SVG + '</a>';
+          }
+          return ''
+            + '<tr data-row-id="' + htmlEscape(c.id) + '">'
+            + '<td>' + htmlEscape(c.codigo || '-') + '</td>'
+            + '<td>' + htmlEscape(c.name || '') + '</td>'
+            + '<td>' + htmlEscape(c.document || '-') + '</td>'
+            + '<td>' + htmlEscape(c.phone || '-') + '</td>'
+            + '<td>' + htmlEscape(c.address_display || '-') + '</td>'
+            + '<td><div class="btn-group">'
+              + '<a href="/clientes/' + htmlEscape(c.id) + '/editar" class="btn btn-secondary btn-sm btn-icon" title="Editar">' + EDIT_SVG + '</a>'
+              + '<form class="js-confirm-submit" action="/clientes/' + htmlEscape(c.id) + '/excluir" method="post" style="display:inline" data-confirm-title="Excluir cliente?" data-confirm-msg="Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.">'
+                + '<button type="submit" class="btn btn-danger btn-sm btn-icon" title="Excluir">' + DEL_SVG + '</button>'
+              + '</form>'
+              + wa
+            + '</div></td>'
+            + '</tr>';
+        }
+
+        function buildParams(overrides) {
+          var p = new URLSearchParams();
+          Object.keys(filters).forEach(function (k) {
+            var v = (filters[k] && filters[k].value || '').trim();
+            if (v) p.set(k, v);
           });
+          p.set('sort', state.sortKey);
+          p.set('page', String(overrides && overrides.page != null ? overrides.page : state.page));
+          p.set('limit', String(state.limit));
+          return p;
+        }
+
+        var lastReqId = 0;
+        function fetchPage(opts) {
+          var reqId = ++lastReqId;
+          var params = buildParams(opts);
+          if (loadingEl) loadingEl.hidden = false;
+          // Atualiza URL sem recarregar a página
+          try { window.history.replaceState({}, '', '/clientes?' + params.toString()); } catch (e) {}
+          fetch('/api/clientes/buscar?' + params.toString(), { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (reqId !== lastReqId) return;
+              if (!data || data.error) throw new Error('Erro ao buscar clientes.');
+              renderRows(data);
+            })
+            .catch(function (e) {
+              if (reqId !== lastReqId) return;
+              console.error('[Cleany] busca clientes:', e);
+            })
+            .finally(function () {
+              if (reqId === lastReqId && loadingEl) loadingEl.hidden = true;
+            });
+        }
+
+        function renderRows(data) {
+          var rows = data.rows || [];
+          if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhum cliente encontrado. Ajuste a busca ou clique em "Novo cliente".</td></tr>';
+          } else {
+            var html = '';
+            for (var i = 0; i < rows.length; i++) html += rowHtml(rows[i]);
+            tbody.innerHTML = html;
+          }
+          state.page = data.page;
+          state.totalPages = data.totalPages;
+          state.sortKey = data.sortKey || state.sortKey;
+          if (countVisibleEl) countVisibleEl.textContent = String(rows.length);
+          if (countTotalEl) countTotalEl.textContent = String(data.total);
+          if (pageEl) pageEl.textContent = String(data.page);
+          if (totalPagesEl) totalPagesEl.textContent = String(data.totalPages);
+          if (filterNoMatch) filterNoMatch.hidden = !(data.total === 0 && hasAnyFilter());
+          updatePaginationButtons();
+          updateSortIndicators();
+        }
+
+        function hasAnyFilter() {
+          return Object.keys(filters).some(function (k) {
+            return (filters[k] && filters[k].value || '').trim().length > 0;
+          });
+        }
+
+        function updatePaginationButtons() {
+          if (pagPrev) pagPrev.disabled = state.page <= 1;
+          if (pagNext) pagNext.disabled = state.page >= state.totalPages;
         }
 
         function updateSortIndicators() {
+          var parts = (state.sortKey || '').split('-');
+          var col = parts[0];
+          var dir = parts[1] || 'asc';
           document.querySelectorAll('.th-sort').forEach(function (btn) {
-            var col = btn.dataset.sortCol;
+            var c = btn.dataset.sortCol;
             var dirEl = btn.querySelector('.th-sort-dir');
-            var active = sortCol === col;
+            var active = c === col;
             btn.classList.toggle('th-sort--active', active);
-            if (dirEl) {
-              dirEl.textContent = active ? (sortDir === 'asc' ? '↑' : '↓') : '';
-            }
-            btn.setAttribute('aria-sort', active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
+            if (dirEl) dirEl.textContent = active ? (dir === 'asc' ? '↑' : '↓') : '';
+            btn.setAttribute('aria-sort', active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none');
           });
         }
 
-        function sortRows() {
-          if (!tbody) return;
-          var key = sortCol + '-' + sortDir;
-          var dataRows = getDataRows();
-          if (dataRows.length < 2) return;
-
-          function num(a, k) {
-            var n = parseInt(a.dataset[k], 10);
-            return isNaN(n) ? -1 : n;
-          }
-          function rowId(a) {
-            return parseInt(a.dataset.rowId, 10) || 0;
-          }
-          function cmp(a, b, field) {
-            var va = (a.dataset[field] || '').toString();
-            var vb = (b.dataset[field] || '').toString();
-            return va.localeCompare(vb, 'pt-BR', { sensitivity: 'base' });
-          }
-
-          dataRows.sort(function (a, b) {
-            var n, c;
-            switch (key) {
-              case 'codigo-desc':
-                n = num(a, 'sortCodigoNum') - num(b, 'sortCodigoNum');
-                if (n !== 0) return -n;
-                return rowId(b) - rowId(a);
-              case 'codigo-asc':
-                n = num(a, 'sortCodigoNum') - num(b, 'sortCodigoNum');
-                if (n !== 0) return n;
-                return rowId(a) - rowId(b);
-              case 'nome-asc':
-                c = cmp(a, b, 'nome');
-                return c !== 0 ? c : rowId(a) - rowId(b);
-              case 'nome-desc':
-                c = cmp(a, b, 'nome');
-                return c !== 0 ? -c : rowId(b) - rowId(a);
-              case 'cpf-asc':
-                c = cmp(a, b, 'cpf');
-                return c !== 0 ? c : rowId(a) - rowId(b);
-              case 'cpf-desc':
-                c = cmp(a, b, 'cpf');
-                return c !== 0 ? -c : rowId(b) - rowId(a);
-              case 'celular-asc':
-                c = cmp(a, b, 'celular');
-                return c !== 0 ? c : rowId(a) - rowId(b);
-              case 'celular-desc':
-                c = cmp(a, b, 'celular');
-                return c !== 0 ? -c : rowId(b) - rowId(a);
-              case 'endereco-asc':
-                c = cmp(a, b, 'endereco');
-                return c !== 0 ? c : rowId(a) - rowId(b);
-              case 'endereco-desc':
-                c = cmp(a, b, 'endereco');
-                return c !== 0 ? -c : rowId(b) - rowId(a);
-              default:
-                return 0;
-            }
-          });
-
-          dataRows.forEach(function (tr) {
-            tbody.appendChild(tr);
-          });
-          applyFilters();
+        var debounceTimer = null;
+        function scheduleSearch() {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(function () {
+            fetchPage({ page: 1 });
+          }, 220);
         }
 
-        function applyFilters() {
-          var codigo = (filterCodigo && filterCodigo.value || '').trim().toLowerCase();
-          var nome = (filterNome && filterNome.value || '').trim().toLowerCase();
-          var cpf = (filterCpf && filterCpf.value || '').trim().toLowerCase();
-          var celular = (filterCelular && filterCelular.value || '').trim().toLowerCase();
-          var endereco = (filterEndereco && filterEndereco.value || '').trim().toLowerCase();
-
-          var dataVisible = 0;
-          var dataTotal = 0;
-          rows.forEach(function (tr) {
-            if (tr.querySelector('.table-empty')) {
-              tr.style.display = '';
-              return;
-            }
-            dataTotal += 1;
-            var matchCodigo = !codigo || (tr.dataset.codigo && tr.dataset.codigo.indexOf(codigo) !== -1);
-            var matchNome = !nome || (tr.dataset.nome && tr.dataset.nome.indexOf(nome) !== -1);
-            var matchCpf = !cpf || (tr.dataset.cpf && tr.dataset.cpf.indexOf(cpf) !== -1);
-            var matchCelular = !celular || (tr.dataset.celular && tr.dataset.celular.indexOf(celular) !== -1);
-            var matchEndereco = !endereco || (tr.dataset.endereco && tr.dataset.endereco.indexOf(endereco) !== -1);
-            var show = matchCodigo && matchNome && matchCpf && matchCelular && matchEndereco;
-            tr.style.display = show ? '' : 'none';
-            if (show) dataVisible += 1;
-          });
-          if (filterNoMatch) {
-            filterNoMatch.hidden = !(dataTotal > 0 && dataVisible === 0);
-          }
-        }
-
-        function clearFilters() {
-          if (filterCodigo) filterCodigo.value = '';
-          if (filterNome) filterNome.value = '';
-          if (filterCpf) filterCpf.value = '';
-          if (filterCelular) filterCelular.value = '';
-          if (filterEndereco) filterEndereco.value = '';
-          applyFilters();
-        }
-
-        [filterCodigo, filterNome, filterCpf, filterCelular, filterEndereco].forEach(function (el) {
-          if (el) el.addEventListener('input', applyFilters);
+        Object.keys(filters).forEach(function (k) {
+          if (filters[k]) filters[k].addEventListener('input', scheduleSearch);
         });
-        if (filterClear) filterClear.addEventListener('click', clearFilters);
+        if (filterClear) {
+          filterClear.addEventListener('click', function () {
+            Object.keys(filters).forEach(function (k) {
+              if (filters[k]) filters[k].value = '';
+            });
+            fetchPage({ page: 1 });
+          });
+        }
+        if (pagPrev) pagPrev.addEventListener('click', function () {
+          if (state.page > 1) fetchPage({ page: state.page - 1 });
+        });
+        if (pagNext) pagNext.addEventListener('click', function () {
+          if (state.page < state.totalPages) fetchPage({ page: state.page + 1 });
+        });
 
         document.querySelectorAll('.th-sort').forEach(function (btn) {
           btn.addEventListener('click', function () {
             var col = btn.dataset.sortCol;
             if (!col) return;
-            if (sortCol === col) {
-              sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+            var parts = (state.sortKey || '').split('-');
+            var curCol = parts[0];
+            var curDir = parts[1] || 'asc';
+            var newDir;
+            if (curCol === col) {
+              newDir = curDir === 'asc' ? 'desc' : 'asc';
             } else {
-              sortCol = col;
-              sortDir = col === 'codigo' ? 'desc' : 'asc';
+              newDir = col === 'codigo' ? 'desc' : 'asc';
             }
+            state.sortKey = col + '-' + newDir;
             updateSortIndicators();
-            sortRows();
+            fetchPage({ page: 1 });
           });
         });
         updateSortIndicators();
+        updatePaginationButtons();
       })();
     </script>
   </body>

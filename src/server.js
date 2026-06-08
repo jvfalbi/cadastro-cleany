@@ -685,18 +685,131 @@ const SQL_ORDER_CUSTOMERS_BY_CODIGO_NUM = `COALESCE(${SQL_CODIGO_NUM_EXPR}, -1) 
 /** Maior código numérico cadastrado (para sequência automática: próximo = max + 1). */
 const SQL_MAX_CODIGO_NUM = `SELECT COALESCE(MAX(${SQL_CODIGO_NUM_EXPR}), 0) AS max_cod FROM customers`;
 
+/** Mapas para filtros e ordenação na lista de clientes (paginada). */
+const CLIENTES_SORT_SQL = {
+  'codigo-desc': `COALESCE(${SQL_CODIGO_NUM_EXPR}, -1) DESC, id DESC`,
+  'codigo-asc': `COALESCE(${SQL_CODIGO_NUM_EXPR}, -1) ASC, id ASC`,
+  'nome-asc': 'name COLLATE NOCASE ASC, id ASC',
+  'nome-desc': 'name COLLATE NOCASE DESC, id DESC',
+  'cpf-asc': 'document COLLATE NOCASE ASC, id ASC',
+  'cpf-desc': 'document COLLATE NOCASE DESC, id DESC',
+  'celular-asc': 'phone COLLATE NOCASE ASC, id ASC',
+  'celular-desc': 'phone COLLATE NOCASE DESC, id DESC',
+  'endereco-asc': "address COLLATE NOCASE ASC, id ASC",
+  'endereco-desc': "address COLLATE NOCASE DESC, id DESC",
+};
+const CLIENTES_PAGE_SIZE_DEFAULT = 50;
+const CLIENTES_PAGE_SIZE_MAX = 200;
+
+function buildClientesFilter(query) {
+  const q = query || {};
+  const conds = [];
+  const params = [];
+  function add(col, raw) {
+    const v = String(raw || '').trim().toLowerCase();
+    if (!v) return;
+    conds.push(`LOWER(IFNULL(${col},'')) LIKE ?`);
+    params.push('%' + v + '%');
+  }
+  add('codigo', q.q_codigo);
+  add('name', q.q_nome);
+  add('document', q.q_cpf);
+  add('phone', q.q_celular);
+  const end = String(q.q_endereco || '').trim().toLowerCase();
+  if (end) {
+    conds.push(
+      "LOWER(IFNULL(address,'') || ' ' || IFNULL(address_street,'') || ' ' || IFNULL(address_number,'') || ' ' || IFNULL(address_complement,'') || ' ' || IFNULL(address_neighborhood,'') || ' ' || IFNULL(address_city,'') || ' ' || IFNULL(address_state,'') || ' ' || IFNULL(cep,'')) LIKE ?"
+    );
+    params.push('%' + end + '%');
+  }
+  const sortKey = CLIENTES_SORT_SQL[q.sort] ? q.sort : 'codigo-desc';
+  const orderBy = CLIENTES_SORT_SQL[sortKey];
+  const limit = Math.min(
+    Math.max(parseInt(q.limit, 10) || CLIENTES_PAGE_SIZE_DEFAULT, 1),
+    CLIENTES_PAGE_SIZE_MAX
+  );
+  const page = Math.max(parseInt(q.page, 10) || 1, 1);
+  return {
+    where: conds.length ? 'WHERE ' + conds.join(' AND ') : '',
+    params,
+    orderBy,
+    sortKey,
+    limit,
+    page,
+    offset: (page - 1) * limit,
+    filters: {
+      q_codigo: q.q_codigo || '',
+      q_nome: q.q_nome || '',
+      q_cpf: q.q_cpf || '',
+      q_celular: q.q_celular || '',
+      q_endereco: q.q_endereco || '',
+    },
+  };
+}
+
+function fetchClientesPage(filter, cb) {
+  const sqlCount = `SELECT COUNT(*) AS n FROM customers ${filter.where}`.trim();
+  const sqlList = `SELECT id, codigo, name, nome_fantasia, document, phone, email, address, cep, address_street, address_number, address_complement, address_neighborhood, address_city, address_state FROM customers ${filter.where} ORDER BY ${filter.orderBy} LIMIT ? OFFSET ?`.trim();
+  db.get(sqlCount, filter.params, (errC, rowC) => {
+    if (errC) return cb(errC);
+    const total = rowC ? rowC.n : 0;
+    db.all(sqlList, [...filter.params, filter.limit, filter.offset], (errL, rows) => {
+      if (errL) return cb(errL);
+      const list = (rows || []).map((r) => ({
+        id: r.id,
+        codigo: r.codigo || '',
+        name: r.name || '',
+        document: r.document || '',
+        phone: r.phone || '',
+        address_display: formatCustomerAddressLine(r) || r.address || '',
+      }));
+      cb(null, { rows: list, total });
+    });
+  });
+}
+
 app.get('/clientes', (req, res) => {
-  db.all(
-    `SELECT * FROM customers ORDER BY ${SQL_ORDER_CUSTOMERS_BY_CODIGO_NUM}`,
-    (err, rows) => {
+  const filter = buildClientesFilter(req.query);
+  fetchClientesPage(filter, (err, data) => {
     if (err) {
+      console.error('[Cleany] GET /clientes:', err.message);
       return res.status(500).send('Erro ao carregar clientes.');
     }
-    const list = (rows || []).map((r) => ({
-      ...r,
-      address_display: formatCustomerAddressLine(r) || r.address || '',
-    }));
-    res.render('customers/list', { customers: list });
+    res.render('customers/list', {
+      customers: data.rows,
+      total: data.total,
+      page: filter.page,
+      limit: filter.limit,
+      totalPages: Math.max(1, Math.ceil(data.total / filter.limit)),
+      sortKey: filter.sortKey,
+      filters: filter.filters,
+    });
+  });
+});
+
+app.get('/api/clientes/buscar', (req, res) => {
+  const filter = buildClientesFilter(req.query);
+  fetchClientesPage(filter, (err, data) => {
+    if (err) {
+      console.error('[Cleany] GET /api/clientes/buscar:', err.message);
+      return res.status(500).json({ error: 'fail' });
+    }
+    res.json({
+      rows: data.rows.map((r) => ({
+        id: r.id,
+        codigo: r.codigo,
+        name: r.name,
+        document: r.document,
+        phone: r.phone,
+        address_display: r.address_display,
+        whatsapp_url: typeof res.locals.whatsappUrl === 'function' ? res.locals.whatsappUrl(r.phone) : '',
+      })),
+      total: data.total,
+      page: filter.page,
+      limit: filter.limit,
+      totalPages: Math.max(1, Math.ceil(data.total / filter.limit)),
+      sortKey: filter.sortKey,
+    });
   });
 });
 
