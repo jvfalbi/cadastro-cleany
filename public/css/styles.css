@@ -179,32 +179,22 @@ a {
 }
 
 /*
- * Desktop: barra lateral sempre fixa. Em vez de rolar a página inteira,
- * a área de conteúdo (.main-content) rola por dentro, então a barra
- * (incluindo o botão "Sair") nunca sobe junto com o conteúdo.
- * Não se aplica ao menu-gaveta de celular/touch (layout-compact).
+ * Desktop: a página rola normalmente (a roda do mouse funciona em qualquer
+ * lugar) e a barra lateral fica fixa na tela, sempre visível com o botão
+ * "Sair". Não se aplica ao menu-gaveta de celular/touch (layout-compact).
  */
 @media (min-width: 1025px) {
-  html:not(.layout-compact),
-  html:not(.layout-compact) body {
-    height: 100%;
-  }
-
-  html:not(.layout-compact) .app-shell {
+  html:not(.layout-compact) .layout.layout--nav-drawer .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
     height: 100vh;
-  }
-
-  html:not(.layout-compact) .layout.layout--nav-drawer {
-    height: 100vh;
-    min-height: 0;
+    max-height: 100vh;
+    overflow-y: auto;
   }
 
   html:not(.layout-compact) .layout.layout--nav-drawer .main-content {
-    height: 100vh;
-    overflow-y: auto;
-    /* alinha ao topo para o .container assumir a altura natural do conteúdo
-       (sem isso o flex estica o container a 100vh e corta a rolagem). */
-    align-items: flex-start;
+    margin-left: 230px;
   }
 }
 
