@@ -41,13 +41,7 @@ a {
 
 .sidebar {
   width: 230px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  align-self: flex-start;
-  height: 100vh;
-  max-height: 100vh;
-  overflow-y: auto;
+  min-height: 100vh;
   background: #e2e5e9;
   color: #1f2933;
   display: flex;
@@ -176,26 +170,6 @@ a {
   flex: 1;
   display: flex;
   min-width: 0;
-}
-
-/*
- * Desktop: a página rola normalmente (a roda do mouse funciona em qualquer
- * lugar) e a barra lateral fica fixa na tela, sempre visível com o botão
- * "Sair". Não se aplica ao menu-gaveta de celular/touch (layout-compact).
- */
-@media (min-width: 1025px) {
-  html:not(.layout-compact) .layout.layout--nav-drawer .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 100vh;
-    max-height: 100vh;
-    overflow-y: auto;
-  }
-
-  html:not(.layout-compact) .layout.layout--nav-drawer .main-content {
-    margin-left: 230px;
-  }
 }
 
 .navbar {
