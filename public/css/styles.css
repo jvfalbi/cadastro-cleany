@@ -19,9 +19,7 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--background-soft);
   color: var(--text-main);
-  /* "clip" evita a rolagem horizontal sem virar contêiner de scroll
-     (o que quebraria o position: sticky da barra lateral). */
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 
 a {
@@ -178,6 +176,36 @@ a {
   flex: 1;
   display: flex;
   min-width: 0;
+}
+
+/*
+ * Desktop: barra lateral sempre fixa. Em vez de rolar a página inteira,
+ * a área de conteúdo (.main-content) rola por dentro, então a barra
+ * (incluindo o botão "Sair") nunca sobe junto com o conteúdo.
+ * Não se aplica ao menu-gaveta de celular/touch (layout-compact).
+ */
+@media (min-width: 1025px) {
+  html:not(.layout-compact),
+  html:not(.layout-compact) body {
+    height: 100%;
+  }
+
+  html:not(.layout-compact) .app-shell {
+    height: 100vh;
+  }
+
+  html:not(.layout-compact) .layout.layout--nav-drawer {
+    height: 100vh;
+    min-height: 0;
+  }
+
+  html:not(.layout-compact) .layout.layout--nav-drawer .main-content {
+    height: 100vh;
+    overflow-y: auto;
+    /* alinha ao topo para o .container assumir a altura natural do conteúdo
+       (sem isso o flex estica o container a 100vh e corta a rolagem). */
+    align-items: flex-start;
+  }
 }
 
 .navbar {
