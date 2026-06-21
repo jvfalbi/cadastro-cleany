@@ -19,7 +19,9 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--background-soft);
   color: var(--text-main);
-  overflow-x: hidden;
+  /* "clip" evita a rolagem horizontal sem virar contêiner de scroll
+     (o que quebraria o position: sticky da barra lateral). */
+  overflow-x: clip;
 }
 
 a {
@@ -41,7 +43,13 @@ a {
 
 .sidebar {
   width: 230px;
-  min-height: 100vh;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
   background: #e2e5e9;
   color: #1f2933;
   display: flex;
