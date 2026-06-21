@@ -24,12 +24,12 @@
               <div>
                 <div class="page-title">Nova ordem de serviço</div>
                 <div class="page-subtitle">
-                  Vincule a O.S. a um cliente e descreva o serviço. A impressão gera 3 vias: Gerente, Funcionário e Cliente.
+                  Vincule a O.S. a um cliente e descreva o serviço. A impressão gera 2 vias: Gerente e Cliente.
                 </div>
               </div>
               <div class="btn-group">
                 <a href="/ordens" class="btn btn-secondary">Voltar ao histórico</a>
-                <button type="button" class="btn btn-primary" id="btn-imprimir-os">Imprimir 3 vias</button>
+                <button type="button" class="btn btn-primary" id="btn-imprimir-os">Imprimir 2 vias</button>
               </div>
             </div>
 
@@ -219,7 +219,7 @@
           } finally {
             if (btn) {
               btn.disabled = false;
-              btn.textContent = 'Imprimir 3 vias';
+              btn.textContent = 'Imprimir 2 vias';
             }
           }
         }
