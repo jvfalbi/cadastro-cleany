@@ -127,6 +127,17 @@
                   <% } %>
                 </tbody>
               </table>
+              <div class="clientes-toolbar clientes-toolbar--bottom" style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center;justify-content:space-between;margin-top:0.8rem;padding-top:0.8rem;border-top:1px solid var(--border-soft);">
+                <p class="hint" style="margin:0;font-size:0.88rem;">
+                  Página <strong id="clientes-page-bottom"><%= page %></strong>
+                  de <strong id="clientes-totalpages-bottom"><%= totalPages %></strong>
+                  — <strong id="clientes-count-total-bottom"><%= total %></strong> clientes no total.
+                </p>
+                <div class="btn-group">
+                  <button type="button" class="btn btn-secondary btn-sm" id="pag-prev-bottom" <%= page <= 1 ? 'disabled' : '' %>>‹ Anterior</button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="pag-next-bottom" <%= page >= totalPages ? 'disabled' : '' %>>Próxima ›</button>
+                </div>
+              </div>
             </div>
           </div>
         </main>
@@ -151,6 +162,11 @@
         var loadingEl = document.getElementById('clientes-loading');
         var pagPrev = document.getElementById('pag-prev');
         var pagNext = document.getElementById('pag-next');
+        var pagPrevBottom = document.getElementById('pag-prev-bottom');
+        var pagNextBottom = document.getElementById('pag-next-bottom');
+        var pageElBottom = document.getElementById('clientes-page-bottom');
+        var totalPagesElBottom = document.getElementById('clientes-totalpages-bottom');
+        var countTotalElBottom = document.getElementById('clientes-count-total-bottom');
 
         var state = {
           sortKey: <%- JSON.stringify(sortKey) %>,
@@ -206,8 +222,12 @@
         }
 
         var lastReqId = 0;
+        var loading = false;
         function fetchPage(opts) {
+          opts = opts || {};
+          var append = !!opts.append;
           var reqId = ++lastReqId;
+          loading = true;
           var params = buildParams(opts);
           if (loadingEl) loadingEl.hidden = false;
           // Atualiza URL sem recarregar a página
@@ -217,35 +237,47 @@
             .then(function (data) {
               if (reqId !== lastReqId) return;
               if (!data || data.error) throw new Error('Erro ao buscar clientes.');
-              renderRows(data);
+              renderRows(data, append);
             })
             .catch(function (e) {
               if (reqId !== lastReqId) return;
               console.error('[Cleany] busca clientes:', e);
             })
             .finally(function () {
-              if (reqId === lastReqId && loadingEl) loadingEl.hidden = true;
+              if (reqId !== lastReqId) return;
+              loading = false;
+              if (loadingEl) loadingEl.hidden = true;
+              maybeLoadMore();
             });
         }
 
-        function renderRows(data) {
+        function renderRows(data, append) {
           var rows = data.rows || [];
-          if (rows.length === 0) {
+          if (append) {
+            if (rows.length) {
+              var htmlA = '';
+              for (var i = 0; i < rows.length; i++) htmlA += rowHtml(rows[i]);
+              tbody.insertAdjacentHTML('beforeend', htmlA);
+            }
+          } else if (rows.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhum cliente encontrado. Ajuste a busca ou clique em "Novo cliente".</td></tr>';
           } else {
-            var html = '';
-            for (var i = 0; i < rows.length; i++) html += rowHtml(rows[i]);
-            tbody.innerHTML = html;
+            var htmlR = '';
+            for (var j = 0; j < rows.length; j++) htmlR += rowHtml(rows[j]);
+            tbody.innerHTML = htmlR;
           }
           state.page = data.page;
           state.totalPages = data.totalPages;
           state.sortKey = data.sortKey || state.sortKey;
-          if (countVisibleEl) countVisibleEl.textContent = String(rows.length);
+          var shown = tbody.querySelectorAll('tr[data-row-id]').length;
+          if (countVisibleEl) countVisibleEl.textContent = String(shown);
           if (countTotalEl) countTotalEl.textContent = String(data.total);
           if (pageEl) pageEl.textContent = String(data.page);
           if (totalPagesEl) totalPagesEl.textContent = String(data.totalPages);
+          if (pageElBottom) pageElBottom.textContent = String(data.page);
+          if (totalPagesElBottom) totalPagesElBottom.textContent = String(data.totalPages);
+          if (countTotalElBottom) countTotalElBottom.textContent = String(data.total);
           if (filterNoMatch) filterNoMatch.hidden = !(data.total === 0 && hasAnyFilter());
-          updatePaginationButtons();
           updateSortIndicators();
         }
 
@@ -256,8 +288,12 @@
         }
 
         function updatePaginationButtons() {
-          if (pagPrev) pagPrev.disabled = state.page <= 1;
-          if (pagNext) pagNext.disabled = state.page >= state.totalPages;
+          var atStart = state.page <= 1;
+          var atEnd = state.page >= state.totalPages;
+          if (pagPrev) pagPrev.disabled = atStart;
+          if (pagNext) pagNext.disabled = atEnd;
+          if (pagPrevBottom) pagPrevBottom.disabled = atStart;
+          if (pagNextBottom) pagNextBottom.disabled = atEnd;
         }
 
         function updateSortIndicators() {
@@ -293,12 +329,24 @@
             fetchPage({ page: 1 });
           });
         }
-        if (pagPrev) pagPrev.addEventListener('click', function () {
-          if (state.page > 1) fetchPage({ page: state.page - 1 });
-        });
-        if (pagNext) pagNext.addEventListener('click', function () {
-          if (state.page < state.totalPages) fetchPage({ page: state.page + 1 });
-        });
+        // Rolagem infinita: ao chegar perto do fim, carrega e anexa a próxima página.
+        function hasMore() { return state.page < state.totalPages; }
+        function maybeLoadMore() {
+          if (loading || !hasMore()) return;
+          var nearBottom =
+            window.innerHeight + window.pageYOffset >=
+            document.documentElement.scrollHeight - 700;
+          if (nearBottom) fetchPage({ append: true, page: state.page + 1 });
+        }
+        window.addEventListener('scroll', maybeLoadMore, { passive: true });
+        window.addEventListener('resize', maybeLoadMore, { passive: true });
+
+        // Botões de paginação são substituídos pela rolagem infinita.
+        var topPag = document.getElementById('clientes-pagination');
+        if (topPag) topPag.style.display = 'none';
+        if (pagNextBottom && pagNextBottom.parentElement) {
+          pagNextBottom.parentElement.style.display = 'none';
+        }
 
         document.querySelectorAll('.th-sort').forEach(function (btn) {
           btn.addEventListener('click', function () {
@@ -319,7 +367,7 @@
           });
         });
         updateSortIndicators();
-        updatePaginationButtons();
+        maybeLoadMore();
       })();
     </script>
   </body>
