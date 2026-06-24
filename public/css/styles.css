@@ -172,6 +172,24 @@ a {
   min-width: 0;
 }
 
+/* Desktop: barra lateral fixa na tela; a página rola normalmente. */
+@media (min-width: 1025px) {
+  html:not(.layout-compact) .layout.layout--nav-drawer .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 100;
+    width: 230px;
+    height: 100vh;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+
+  html:not(.layout-compact) .layout.layout--nav-drawer .main-content {
+    margin-left: 230px;
+  }
+}
+
 .navbar {
   background: linear-gradient(120deg, var(--primary-green), var(--primary-blue));
   color: #fff;
